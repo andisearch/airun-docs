@@ -1,0 +1,298 @@
+---
+title: ai
+description: Universal AI prompt interpreter and Claude Code wrapper
+---
+
+The `ai` command is the primary entry point for Andi AIRun. It runs AI prompts as scripts, provides executable markdown with shebang support, and enables cross-cloud provider switching.
+
+## Syntax
+
+```bash
+ai [OPTIONS] [file.md]
+ai update
+```
+
+## Usage Modes
+
+### Interactive Mode
+
+Run `ai` with no arguments to start an interactive session:
+
+```bash
+ai                                        # Regular Claude subscription
+ai --aws --opus --team                    # AWS Bedrock with Opus + Agent Teams
+ai --ollama --bypass                      # Ollama local with bypassPermissions
+ai --vercel --model openai/gpt-5.2-codex  # Vercel AI Gateway
+```
+
+Interactive mode launches Claude Code with your selected provider and model configuration. The session is automatically restored to your original settings on exit.
+
+### Script File Mode
+
+Execute a markdown file as a prompt:
+
+```bash
+ai task.md                    # Uses default provider
+ai --aws --opus script.md     # AWS Bedrock with Opus
+ai --ollama --haiku task.md   # Local Ollama with Haiku tier
+```
+
+Script files can contain a shebang line for direct execution:
+
+```markdown
+#!/usr/bin/env ai
+Analyze this codebase and summarize the architecture.
+```
+
+```bash
+chmod +x task.md
+./task.md                     # Executes directly
+```
+
+### Stdin Mode
+
+Pipe content directly to `ai`:
+
+```bash
+echo "Explain what a Makefile does" | ai
+curl https://example.com/prompt.md | ai
+git log -10 | ai --aws
+cat data.json | ./analyze.md > results.txt
+```
+
+By default, piped content is prepended to file content. Use `--stdin-position append` to place it after.
+
+## Common Options
+
+These are the AI Runner-specific options. See individual reference pages for detailed documentation:
+
+<CardGroup cols={2}>
+  <Card title="Provider Flags" icon="cloud" href="./provider-flags">
+    Switch between Claude subscriptions and cloud providers
+  </Card>
+  <Card title="Model Flags" icon="brain" href="./model-flags">
+    Select model tiers or specific model IDs
+  </Card>
+  <Card title="Permission Flags" icon="shield" href="./permission-flags">
+    Control file access and command execution permissions
+  </Card>
+  <Card title="Output Flags" icon="terminal" href="./output-flags">
+    Configure output format and streaming behavior
+  </Card>
+</CardGroup>
+
+## Flag Precedence
+
+When the same configuration is specified in multiple places, AI Runner uses this precedence order (highest to lowest):
+
+1. **CLI flags** - `ai --aws --opus file.md`
+2. **Shebang flags** - `#!/usr/bin/env -S ai --aws --opus`
+3. **Saved defaults** - `ai --aws --opus --set-default`
+4. **Auto-detection** - Current Claude subscription
+
+CLI flags always override shebang flags, which override saved defaults.
+
+## Real Examples
+
+### Basic Script Execution
+
+```bash
+# Create an executable prompt
+cat > greet.md << 'EOF'
+#!/usr/bin/env ai
+Say hello and tell me a joke.
+EOF
+
+chmod +x greet.md
+./greet.md
+```
+
+### Provider Switching
+
+```bash
+# Run with local Ollama (free, no API key needed)
+ai --ollama task.md
+
+# Run with AWS Bedrock using the strongest model
+ai --aws --opus task.md
+
+# Pipe a remote script to a local model
+curl https://example.com/prompt.md | ai --ollama
+```
+
+### Unix Pipeline Automation
+
+```bash
+# Pipe in data, redirect output
+cat data.json | ./analyze.md > results.txt
+
+# Feed git history to AI
+git log -10 | ./summarize.md
+
+# Chain scripts together
+./generate.md | ./review.md > final.txt
+```
+
+### Agent Teams
+
+```bash
+# Start an interactive session with agent teams on AWS
+ai --aws --opus --team
+
+# Use tmux split panes for teammate display
+ai --team --teammate-mode tmux
+```
+
+### Persistent Defaults
+
+```bash
+# Save AWS + Opus as your default
+ai --aws --opus --set-default
+
+# Now just run 'ai' - uses saved default
+ai task.md
+
+# Clear saved defaults
+ai --clear-default
+```
+
+## Script Variables
+
+Declare variables with defaults in YAML front-matter:
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+---
+vars:
+  topic: "machine learning"
+  style: casual
+  length: short
+---
+Write a {{length}} summary of {{topic}} in a {{style}} tone.
+```
+
+Override from CLI:
+
+```bash
+./summarize.md --topic "AI safety" --style formal
+```
+
+## Other Commands
+
+<ParamField path="update" type="command">
+  Update AI Runner to the latest version:
+  
+  ```bash
+  ai update
+  ```
+  
+  Pulls the latest version from the configured GitHub repository and re-runs the setup script.
+</ParamField>
+
+<ParamField path="--set-default" type="flag">
+  Save current provider+model as persistent default:
+  
+  ```bash
+  ai --aws --opus --set-default
+  ```
+</ParamField>
+
+<ParamField path="--clear-default" type="flag">
+  Remove saved defaults:
+  
+  ```bash
+  ai --clear-default
+  ```
+</ParamField>
+
+<ParamField path="--resume" type="flag">
+  Resume the most recent conversation:
+  
+  ```bash
+  ai --resume
+  ai --aws --resume           # Resume with different provider
+  ai --aws --opus --resume    # Resume with different model
+  ```
+  
+  Picks up your previous conversation exactly where you left off. Works across provider switches - useful when you hit rate limits.
+</ParamField>
+
+<ParamField path="--team" type="flag">
+  Enable agent teams (interactive mode only):
+  
+  ```bash
+  ai --team
+  ai --aws --opus --team
+  ai --team --teammate-mode tmux
+  ```
+  
+  Enables Claude Code's agent teams feature. Multiple AI agents collaborate on tasks with one lead coordinator.
+  
+  **Short form:** `--teams`
+</ParamField>
+
+<ParamField path="--tool" type="flag">
+  Select the underlying AI tool:
+  
+  ```bash
+  ai --tool cc               # Claude Code (default)
+  ai --cc                    # Shorthand for --tool cc
+  ```
+  
+  Currently only Claude Code is supported. The `--cc` flag is a shortcut for `--tool cc`.
+</ParamField>
+
+<ParamField path="--version" type="flag">
+  Show version information:
+  
+  ```bash
+  ai --version
+  ai -v
+  ```
+</ParamField>
+
+<ParamField path="--help" type="flag">
+  Show help message:
+  
+  ```bash
+  ai --help
+  ai -h
+  ```
+</ParamField>
+
+## Session Behavior
+
+AI Runner uses session-scoped configuration:
+
+- On exit, your original Claude settings are automatically restored
+- Plain `claude` in another terminal is completely unaffected
+- No global configuration is changed
+- Each invocation starts fresh (nested scripts don't inherit parent env vars)
+
+## Passthrough Flags
+
+Any flag not recognized by AI Runner is forwarded to Claude Code unchanged:
+
+```bash
+ai --verbose task.md                    # --verbose passed to Claude Code
+ai --allowedTools 'Bash' 'Read' task.md # --allowedTools passed through
+ai --chrome --live test-flow.md         # --chrome passed through
+```
+
+## Exit Codes
+
+`ai` exits with the same code as the underlying tool (Claude Code). A non-zero exit means the tool reported an error.
+
+## Related Commands
+
+<CardGroup cols={3}>
+  <Card title="ai-status" href="./ai-status">
+    Show current configuration
+  </Card>
+  <Card title="ai-sessions" href="./ai-sessions">
+    List active sessions
+  </Card>
+  <Card title="ai update" href="./ai-update">
+    Update to latest version
+  </Card>
+</CardGroup>

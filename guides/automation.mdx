@@ -1,0 +1,340 @@
+---
+title: 'CI/CD & Automation'
+description: 'Run AI scripts in continuous integration pipelines with proper permissions and error handling'
+---
+
+## Overview
+
+Andi AIRun scripts are perfect for CI/CD workflows: automated testing, code review, documentation generation, and more. This guide covers how to run scripts reliably in automation environments.
+
+## Running Scripts in CI/CD
+
+### Basic CI Script
+
+```markdown
+#!/usr/bin/env -S ai --apikey --haiku --skip
+Run the linter and fix any issues. Then run the test suite.
+Commit fixes with a descriptive message if all tests pass.
+```
+
+Key flags for CI:
+- `--apikey` — Use API key authentication (set `ANTHROPIC_API_KEY` environment variable)
+- `--haiku` — Fast, cost-effective model for routine tasks
+- `--skip` — No permission prompts (required for unattended execution)
+
+### GitHub Actions Example
+
+```yaml .github/workflows/ai-review.yml
+name: AI Code Review
+on: [pull_request]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Andi AIRun
+        run: |
+          curl -fsSL https://andi.ai/install.sh | sh
+          echo "$HOME/.andi/bin" >> $GITHUB_PATH
+      
+      - name: Run AI Review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          chmod +x ./scripts/review.md
+          ./scripts/review.md > review-report.md
+      
+      - name: Post Review Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('review-report.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+```
+
+### GitLab CI Example
+
+```yaml .gitlab-ci.yml
+ai-tests:
+  stage: test
+  image: ubuntu:latest
+  before_script:
+    - curl -fsSL https://andi.ai/install.sh | sh
+    - export PATH="$HOME/.andi/bin:$PATH"
+  script:
+    - chmod +x ./scripts/run-tests.md
+    - ./scripts/run-tests.md
+  variables:
+    ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
+  artifacts:
+    reports:
+      junit: test-results.xml
+```
+
+## Permission Flags for Automation
+
+### The `--skip` Shortcut
+
+For quick automation, use `--skip` (shorthand for `--dangerously-skip-permissions`):
+
+```markdown
+#!/usr/bin/env -S ai --skip
+Run the test suite and fix any failing tests.
+```
+
+### The `--bypass` Alternative
+
+Use `--bypass` (shorthand for `--permission-mode bypassPermissions`) when you need composability with other permission settings:
+
+```markdown
+#!/usr/bin/env -S ai --bypass
+Run the test suite and fix any failing tests.
+```
+
+### Granular Tool Access
+
+For better security, restrict to specific tools with `--allowedTools`:
+
+```markdown
+#!/usr/bin/env -S ai --allowedTools 'Bash(npm test)' 'Bash(npm run build)' 'Read'
+Run tests and build. Report results but do not modify any files.
+```
+
+### Permission Flag Precedence
+
+`ai` resolves permission shortcuts before passing flags to Claude Code. When conflicts are detected, explicit flags take precedence:
+
+- `--permission-mode <value>` and `--dangerously-skip-permissions` are **explicit** — they always win
+- `--skip` and `--bypass` are **shortcuts** — ignored with a warning if an explicit flag is also present
+- **CLI flags override shebang flags** — if you run `ai --permission-mode plan script.md` and the script has `--skip` in its shebang, plan mode is used
+
+| You use | What happens |
+|---------|-------------|
+| `ai --skip` | Same as `--dangerously-skip-permissions` (nuclear — overrides all permission modes) |
+| `ai --bypass` | Same as `--permission-mode bypassPermissions` (mode-based — composable) |
+| `ai --skip --permission-mode plan` | Plan mode used, `--skip` ignored (warning shown) |
+| `ai --bypass --permission-mode plan` | Plan mode used, `--bypass` ignored (warning shown) |
+| `ai --permission-mode plan script.md` (script has `--skip`) | Plan mode used, shebang `--skip` ignored |
+
+## Exit Codes and Error Handling
+
+### Exit Codes
+
+Andi AIRun returns standard Unix exit codes:
+
+- `0` — Success
+- `1` — General error (AI task failed, tool error, etc.)
+- `2` — Invalid arguments or configuration
+
+### Handling Failures in Scripts
+
+Use standard shell error handling:
+
+```bash
+#!/bin/bash
+set -e  # Exit on error
+
+./test-runner.md || {
+  echo "Tests failed"
+  exit 1
+}
+
+./deploy.md
+echo "Deployment successful"
+```
+
+### Conditional Execution
+
+```bash
+if ./security-scan.md; then
+  echo "Security scan passed"
+  ./deploy.md
+else
+  echo "Security issues found, deployment blocked"
+  exit 1
+fi
+```
+
+### Retry Logic
+
+```bash
+#!/bin/bash
+max_retries=3
+attempt=0
+
+while [ $attempt -lt $max_retries ]; do
+  if ./flaky-test.md; then
+    echo "Tests passed"
+    exit 0
+  fi
+  attempt=$((attempt + 1))
+  echo "Attempt $attempt failed, retrying..."
+  sleep 5
+done
+
+echo "All retries failed"
+exit 1
+```
+
+## Real-World Examples
+
+### Example 1: Automated Test Runner
+
+```markdown run-tests.md
+#!/usr/bin/env -S ai --sonnet --skip
+Run the test suite for this project. Report which tests passed and which
+failed. If any tests fail, explain the root cause.
+```
+
+Usage in CI:
+```bash
+./run-tests.md > test-report.md
+```
+
+### Example 2: Documentation Generator
+
+```markdown generate-docs.md
+#!/usr/bin/env -S ai --skip
+Read the source files in `src/` and generate an `ARCHITECTURE.md` file
+documenting the codebase structure, key modules, and data flow.
+```
+
+Usage in CI:
+```yaml
+- name: Generate docs
+  run: ./generate-docs.md
+  
+- name: Commit docs
+  run: |
+    git config user.name "AI Bot"
+    git config user.email "bot@example.com"
+    git add ARCHITECTURE.md
+    git commit -m "Update architecture docs" || true
+    git push
+```
+
+### Example 3: Security Audit
+
+```markdown security-audit.md
+#!/usr/bin/env -S ai --aws --opus
+Review the code in this repository for security vulnerabilities.
+Focus on OWASP Top 10 issues. Be specific about file and line numbers.
+Output findings in markdown format with severity levels.
+```
+
+Usage in CI:
+```bash
+./security-audit.md > security-report.md
+if grep -q "CRITICAL\|HIGH" security-report.md; then
+  echo "High-severity issues found"
+  exit 1
+fi
+```
+
+### Example 4: PR Description Generator
+
+```markdown pr-description.md
+#!/usr/bin/env -S ai --haiku
+Analyze the git diff and recent commits. Generate a concise PR description
+that explains what changed, why, and any breaking changes or migration steps.
+```
+
+Usage:
+```bash
+git diff main...HEAD | ./pr-description.md > pr-body.md
+gh pr create --title "Feature: New API" --body-file pr-body.md
+```
+
+## Flag Precedence
+
+`ai` resolves flags from multiple sources. Higher sources override lower ones:
+
+| Priority | Source | Example |
+|----------|--------|---------||
+| 1 (highest) | CLI flags | `ai --aws --opus script.md` |
+| 2 | Shebang flags | `#!/usr/bin/env -S ai --ollama --low` |
+| 3 | Saved defaults | `ai --aws --opus --set-default` |
+| 4 (lowest) | Auto-detection | Current Claude subscription |
+
+**Example:** A script has `#!/usr/bin/env -S ai --ollama --low`. Running `ai script.md` uses Ollama (shebang). Running `ai --aws script.md` uses AWS (CLI overrides shebang).
+
+## Passing Claude Code Flags
+
+Any flag not recognized by `ai` is passed directly to Claude Code. Useful flags for automation:
+
+| Flag | Purpose | Example |
+|------|---------|---------||
+| `--skip` | Shortcut for `--dangerously-skip-permissions` | Quick automation |
+| `--bypass` | Shortcut for `--permission-mode bypassPermissions` | Quick automation |
+| `--max-turns N` | Limit agentic loop iterations | Prevent runaway scripts |
+| `--output-format stream-json` | Structured JSON output | Pipeline integration |
+| `--live` | Stream text in real-time | Long-running scripts |
+
+Combine with `ai` flags freely:
+```markdown
+#!/usr/bin/env -S ai --aws --opus --skip --max-turns 10
+```
+
+## Security Best Practices
+
+<Warning>
+**Always run AI automation in sandboxed environments:**
+
+1. **Use containers** — Run scripts inside Docker containers with limited permissions
+2. **Restrict file access** — Mount only necessary directories
+3. **Network isolation** — Use network policies to limit outbound connections
+4. **Secret management** — Never hardcode API keys; use environment variables or secret managers
+5. **Code review** — Review AI-generated changes before merging
+6. **Audit logs** — Log all AI actions for security monitoring
+</Warning>
+
+### Docker Example
+
+```dockerfile
+FROM ubuntu:latest
+
+RUN curl -fsSL https://andi.ai/install.sh | sh
+
+# Run as non-root user
+RUN useradd -m airunner
+USER airunner
+
+WORKDIR /workspace
+COPY --chown=airunner:airunner ./scripts /workspace/scripts
+
+ENTRYPOINT ["/home/airunner/.andi/bin/ai"]
+```
+
+Run it:
+```bash
+docker build -t ai-runner .
+docker run --rm \
+  -e ANTHROPIC_API_KEY \
+  -v $(pwd):/workspace:ro \
+  ai-runner --skip ./scripts/review.md
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Permissions" icon="shield-check" href="/guides/permissions">
+    Deep dive into permission modes and security
+  </Card>
+  <Card title="Live Output" icon="signal-stream" href="/guides/live-output">
+    Stream progress for long-running CI jobs
+  </Card>
+  <Card title="Script Variables" icon="dollar-sign" href="/guides/variables">
+    Make scripts reusable with CLI overrides
+  </Card>
+  <Card title="Writing Scripts" icon="scroll" href="/guides/scripting">
+    Learn script basics and common patterns
+  </Card>
+</CardGroup>

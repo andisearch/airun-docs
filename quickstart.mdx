@@ -1,0 +1,231 @@
+---
+title: Quickstart
+description: Get started with AIRun in 5 minutes - install, create your first executable AI script, and run it
+---
+
+# Quickstart
+
+Get AIRun running in 5 minutes. This guide will help you install AIRun, create your first executable AI script, and run it.
+
+## Prerequisites
+
+Before you begin, make sure you have [Claude Code](https://claude.ai/code) installed. AIRun extends Claude Code with executable markdown and provider switching.
+
+```bash
+# Install Claude Code (if not already installed)
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+<Note>
+  Claude Code is Anthropic's AI coding CLI. You'll need an active Claude subscription (Pro or Max) or API credentials to use it.
+</Note>
+
+## Installation
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/andisearch/airun.git
+    cd airun
+    ```
+  </Step>
+
+  <Step title="Run the setup script">
+    ```bash
+    ./setup.sh
+    ```
+    
+    The setup script will:
+    - Install commands to `/usr/local/bin`
+    - Create `~/.ai-runner/` for configuration
+    - Copy a secrets template for API keys
+    
+    <Tip>
+      The setup is non-destructive. Your plain `claude` command always works unchanged.
+    </Tip>
+  </Step>
+
+  <Step title="Verify installation">
+    ```bash
+    ai --version
+    ```
+    
+    You should see the AIRun version number.
+  </Step>
+</Steps>
+
+## Your First Executable AI Script
+
+Let's create a simple executable markdown file that runs as an AI program.
+
+<Steps>
+  <Step title="Create a markdown file">
+    Create a file called `hello.md` with the following content:
+    
+    ```markdown hello.md
+    #!/usr/bin/env -S ai --haiku
+    Say hello and briefly explain what you can do.
+    ```
+    
+    The first line is a shebang that tells the system to run this file with AIRun using the Haiku model (fastest and most cost-effective).
+  </Step>
+
+  <Step title="Make it executable">
+    ```bash
+    chmod +x hello.md
+    ```
+  </Step>
+
+  <Step title="Run it">
+    ```bash
+    ./hello.md
+    ```
+    
+    The AI will execute your prompt and respond. This uses your Claude subscription by default.
+  </Step>
+</Steps>
+
+<Tip>
+  You can also run any markdown file without making it executable:
+  ```bash
+  ai hello.md
+  ```
+</Tip>
+
+## Example: Piping Data
+
+One of AIRun's most powerful features is Unix-style piping. Let's create a script that analyzes data:
+
+```markdown analyze-code.md
+#!/usr/bin/env -S ai --sonnet --skip
+Summarize the architecture of this codebase. List the main entry points,
+key modules, and how data flows through the system.
+```
+
+<Warning>
+  The `--skip` flag is shorthand for `--dangerously-skip-permissions`, which gives the AI full system access. Only use it in trusted directories with trusted scripts.
+</Warning>
+
+Make it executable and run it:
+
+```bash
+chmod +x analyze-code.md
+./analyze-code.md
+```
+
+## Example: Script Variables
+
+Create reusable scripts with customizable variables:
+
+```markdown summarize-topic.md
+#!/usr/bin/env -S ai --haiku
+---
+vars:
+  topic: "machine learning"
+  style: casual
+  length: short
+---
+Write a {{length}} summary of {{topic}} in a {{style}} tone.
+```
+
+Run with defaults or override variables:
+
+```bash
+# Use defaults
+./summarize-topic.md
+
+# Override variables
+./summarize-topic.md --topic "AI safety" --style formal --length detailed
+```
+
+## Example: Unix Pipes
+
+Pipe data into your AI scripts:
+
+```bash
+# Analyze JSON data
+cat data.json | ./analyze.md > results.txt
+
+# Summarize git history
+git log --oneline -20 | ./summarize-changes.md
+
+# Chain scripts together
+./generate-report.md | ./format-output.md > final.txt
+```
+
+## Switch Providers
+
+Use different AI providers by adding flags:
+
+```bash
+# Use local Ollama (free!)
+ai --ollama hello.md
+
+# Use AWS Bedrock with Opus
+ai --aws --opus hello.md
+
+# Use Google Vertex AI
+ai --vertex hello.md
+
+# Use Vercel AI Gateway with a specific model
+ai --vercel --model openai/gpt-5.2-codex hello.md
+```
+
+<Note>
+  You'll need to configure your API credentials for cloud providers. See the [Installation Guide](/installation) for details.
+</Note>
+
+## Available Commands
+
+AIRun installs these commands:
+
+| Command | Description |
+|---------|-------------|
+| `ai` / `airun` | Universal entry point - run scripts, switch providers |
+| `ai update` | Update AI Runner to the latest version |
+| `ai-sessions` | View active AI coding sessions |
+| `ai-status` | Show current configuration and provider status |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installation Guide" icon="download" href="/installation">
+    Detailed installation and configuration instructions
+  </Card>
+  <Card title="Provider Setup" icon="cloud" href="/installation#configure-providers">
+    Configure AWS, Azure, Vertex, and other providers
+  </Card>
+  <Card title="Examples" icon="code" href="#examples">
+    More example scripts and use cases
+  </Card>
+  <Card title="Scripting Guide" icon="scroll" href="#scripting">
+    Learn advanced scripting patterns and automation
+  </Card>
+</CardGroup>
+
+## Tips
+
+<Tip>
+  **Use `#!/usr/bin/env -S` for shebangs with flags**
+  
+  Standard `env` only accepts one argument, so you need `-S` to pass multiple flags:
+  ```markdown
+  #!/usr/bin/env -S ai --aws --opus
+  ```
+</Tip>
+
+<Tip>
+  **Flag precedence**: CLI flags > shebang flags > saved defaults
+  
+  Running `ai --vercel task.md` overrides the script's shebang provider.
+</Tip>
+
+<Tip>
+  **Set a default provider**
+  
+  ```bash
+  ai --ollama --set-default
+  ai task.md  # uses Ollama by default
+  ai --clear-default  # remove saved default
+  ```
+</Tip>

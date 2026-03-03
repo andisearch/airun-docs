@@ -1,0 +1,250 @@
+---
+title: ai update
+description: Update AI Runner to the latest version
+---
+
+The `ai update` command updates your AI Runner installation to the latest version from the configured GitHub repository.
+
+## Syntax
+
+```bash
+ai update
+```
+
+## What Gets Updated
+
+When you run `ai update`, the following are updated:
+
+<Steps>
+  <Step title="Fetch Latest Version">
+    Pulls the latest code from the configured GitHub repository (default: `andisearch/airun`)
+  </Step>
+  
+  <Step title="Update Scripts">
+    Installs updated scripts to `/usr/local/bin`:
+    - `ai` / `airun` - main command
+    - `ai-sessions` - session listing
+    - `ai-status` - configuration status
+    - Legacy `claude-*` commands for backward compatibility
+  </Step>
+  
+  <Step title="Update Libraries">
+    Updates shared libraries in `/usr/local/share/ai-runner/`:
+    - `lib/` - core utilities and loaders
+    - `providers/` - provider implementations
+    - `tools/` - tool integrations
+  </Step>
+  
+  <Step title="Update Configuration">
+    Updates configuration files in `~/.ai-runner/`:
+    - `models.sh` - default model IDs (with prompt before overwriting)
+    - `banner.sh` - banner configuration
+  </Step>
+  
+  <Step title="Preserve Secrets">
+    **Never touches** your API keys and credentials:
+    - `~/.ai-runner/secrets.sh` - preserved unchanged
+    - `~/.ai-runner/defaults.sh` - preserved unchanged
+  </Step>
+</Steps>
+
+## Version Checking
+
+AI Runner automatically checks for updates:
+
+- **Frequency**: Once every 24 hours (non-blocking, cache-only)
+- **Where**: Interactive mode startup and `ai-status` command
+- **Notification**: Shows a notice when a new version is available
+
+```bash
+$ ai
+
+  ╔═══════════════════════════════════════╗
+  ║         🎯 Andi AI Runner 🎯          ║
+  ╚═══════════════════════════════════════╝
+
+⚠️  Update available: 1.0.1 (current: 1.0.0)
+    Run: ai update
+
+Claude Code + AWS Bedrock mode activated
+...
+```
+
+### Disable Update Checks
+
+To disable automatic update checking:
+
+```bash
+export AI_NO_UPDATE_CHECK=1
+```
+
+Add to your shell profile (`~/.bashrc`, `~/.zshrc`) to make permanent.
+
+## Manual Update
+
+You can also update manually:
+
+```bash
+cd ~/path/to/airun
+git pull
+./setup.sh
+```
+
+This is equivalent to running `ai update`.
+
+## What's Preserved
+
+The update process **never** modifies:
+
+- **API keys and credentials** in `~/.ai-runner/secrets.sh`
+- **Saved defaults** in `~/.ai-runner/defaults.sh`
+- **Session data** in `~/.ai-runner/sessions/`
+- **Claude configuration** in `~/.claude/`
+
+## Model Configuration Updates
+
+When model defaults change between versions, you'll be prompted:
+
+```bash
+$ ai update
+
+Model configuration has been updated.
+  Changes include updated default model versions.
+  Note: You have model overrides in secrets.sh.
+  Update to latest model defaults? [Y/n]: 
+```
+
+- Choose **Y** to update to new model defaults
+- Choose **n** to keep your current model configuration
+
+Your model overrides in `secrets.sh` are always preserved.
+
+## Update Source
+
+By default, `ai update` pulls from:
+
+```
+https://github.com/andisearch/airun
+```
+
+If you installed from a fork or custom source, the update command uses your configured git remote.
+
+Check your source:
+
+```bash
+cat /usr/local/share/ai-runner/.source-metadata
+```
+
+Update source:
+
+```bash
+cd ~/path/to/airun
+git remote set-url origin https://github.com/yourusername/airun.git
+git pull
+./setup.sh
+```
+
+## Version History
+
+View release notes and version history:
+
+- [GitHub Releases](https://github.com/andisearch/airun/releases)
+- [CHANGELOG.md](https://github.com/andisearch/airun/blob/main/CHANGELOG.md)
+
+## Check Current Version
+
+```bash
+ai --version
+```
+
+Or:
+
+```bash
+cat /usr/local/share/ai-runner/VERSION
+```
+
+## Rollback to Previous Version
+
+If an update causes issues:
+
+```bash
+cd ~/path/to/airun
+git log --oneline -10              # Find previous version commit
+git checkout <commit-hash>         # Rollback to specific version
+./setup.sh                         # Reinstall
+```
+
+## Update Behavior
+
+<Warning>
+  The `ai update` command requires sudo access if `/usr/local/bin` is not writable by your user. You'll be prompted for your password during the update.
+</Warning>
+
+<Info>
+  Active sessions are not affected by updates. You can continue working in open `ai` sessions while updating.
+</Info>
+
+## Troubleshooting Updates
+
+<AccordionGroup>
+  <Accordion title="Update fails with 'permission denied'">
+    The update process needs to write to `/usr/local/bin`. Run with sudo or ensure the directory is writable:
+    
+    ```bash
+    sudo ai update
+    ```
+    
+    Or make the directory writable:
+    
+    ```bash
+    sudo chown -R $USER /usr/local/bin /usr/local/share/ai-runner
+    ai update
+    ```
+  </Accordion>
+  
+  <Accordion title="Update fails with 'git not found'">
+    AI Runner needs git to pull updates. Install git:
+    
+    ```bash
+    # macOS
+    brew install git
+    
+    # Ubuntu/Debian
+    sudo apt install git
+    ```
+  </Accordion>
+  
+  <Accordion title="Update doesn't show new features">
+    Verify you're on the latest version:
+    
+    ```bash
+    ai --version
+    ```
+    
+    Check if git pulled successfully:
+    
+    ```bash
+    cd ~/path/to/airun
+    git log -1
+    ```
+    
+    Force reinstall:
+    
+    ```bash
+    cd ~/path/to/airun
+    git pull --force
+    ./setup.sh
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="ai --version" href="./ai#other-commands">
+    Show current version
+  </Card>
+  <Card title="ai-status" href="./ai-status">
+    Check configuration (includes update status)
+  </Card>
+</CardGroup>

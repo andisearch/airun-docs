@@ -1,0 +1,206 @@
+---
+title: ai-status
+description: Show current configuration and provider status
+---
+
+The `ai-status` command displays your current AI Runner configuration, authentication status, available providers, and model settings.
+
+## Syntax
+
+```bash
+ai-status
+```
+
+## What It Shows
+
+### Authentication Status
+
+For each configured provider:
+- **Authentication method** (API key, credentials file, subscription)
+- **Status** (✓ configured or ✗ not configured)
+- **Key presence** (shows whether API keys/credentials are set)
+
+### Model Configuration
+
+- **Default model IDs** for each tier (Opus, Sonnet, Haiku)
+- **Small/fast model** used for background operations
+- **Custom model overrides** in `~/.ai-runner/secrets.sh`
+
+### Current Session
+
+If run inside an active `ai` session:
+- **Active provider** and model
+- **Authentication method** in use
+- **Session ID**
+
+## Example Output
+
+```bash
+$ ai-status
+
+=== AI Runner Configuration ===
+
+Version: 1.0.0
+Config Directory: ~/.ai-runner
+
+--- Authentication Status ---
+
+Claude Pro Subscription:
+  Status: ✓ Logged in
+  Auth: Subscription
+
+AWS Bedrock:
+  Status: ✓ Configured
+  Profile: default
+  Region: us-west-2
+  Auth: AWS credentials
+
+Google Vertex AI:
+  Status: ✓ Configured
+  Project: my-gcp-project
+  Region: global
+  Auth: Application default credentials
+
+Anthropic API:
+  Status: ✓ Configured
+  Auth: API key (sk-ant-...abc123)
+
+Azure Foundry:
+  Status: ✗ Not configured
+  Note: Set ANTHROPIC_FOUNDRY_API_KEY in secrets.sh
+
+Vercel AI Gateway:
+  Status: ✓ Configured
+  Auth: Gateway token (vck_...xyz789)
+
+Ollama:
+  Status: ✓ Available
+  URL: http://localhost:11434
+  Auth: None (local)
+
+LM Studio:
+  Status: ✗ Not running
+  URL: http://localhost:1234
+  Auth: None (local)
+
+--- Model Configuration ---
+
+Default Models:
+  Opus (high):   claude-opus-4-6-v1:0
+  Sonnet (mid):  claude-sonnet-4-6-v1:0 (default)
+  Haiku (low):   claude-haiku-4-5-20251001-v1:0
+
+Small/Fast Model: claude-haiku-4-5-20251001-v1:0
+
+--- Saved Defaults ---
+
+Provider: aws
+Model: --opus
+Command: ai --aws --opus
+
+--- Update Status ---
+
+Current version: 1.0.0
+Latest version: 1.0.1
+Update available! Run: ai update
+```
+
+## Use Cases
+
+### Verify Provider Setup
+
+After configuring credentials in `~/.ai-runner/secrets.sh`, run `ai-status` to verify:
+
+```bash
+# Edit credentials
+nano ~/.ai-runner/secrets.sh
+
+# Verify configuration
+ai-status
+```
+
+### Debug Connection Issues
+
+When a provider isn't working:
+
+```bash
+ai-status  # Shows which credentials are missing
+```
+
+### Check Active Session
+
+From within an `ai` session, run `/status` in Claude or `ai-status` in another terminal to see which provider and model are active.
+
+### View Model Defaults
+
+See what model each tier flag resolves to:
+
+```bash
+ai-status  # Shows opus/sonnet/haiku model IDs per provider
+```
+
+## Configuration Files
+
+The command reads from:
+
+- `~/.ai-runner/secrets.sh` - API keys and credentials
+- `~/.ai-runner/models.sh` - Model ID configuration
+- `~/.ai-runner/defaults.sh` - Saved defaults from `--set-default`
+- `~/.claude/settings.json` - Claude subscription status
+
+## Provider Status Indicators
+
+| Indicator | Meaning |
+|-----------|----------|
+| ✓ Configured | Provider has required credentials |
+| ✗ Not configured | Missing credentials or setup |
+| ✓ Available | Local provider is running |
+| ✗ Not running | Local provider service not started |
+| ✓ Logged in | Claude subscription is active |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Provider shows 'Not configured'">
+    Add the required credentials to `~/.ai-runner/secrets.sh`:
+    
+    ```bash
+    nano ~/.ai-runner/secrets.sh
+    ```
+    
+    Uncomment and fill in the appropriate section for your provider.
+  </Accordion>
+  
+  <Accordion title="Local provider shows 'Not running'">
+    For Ollama:
+    ```bash
+    ollama serve
+    ```
+    
+    For LM Studio:
+    ```bash
+    lms server start --port 1234
+    ```
+  </Accordion>
+  
+  <Accordion title="Wrong model being used">
+    Check for overrides in `~/.ai-runner/secrets.sh`:
+    
+    ```bash
+    grep CLAUDE_MODEL ~/.ai-runner/secrets.sh
+    ```
+    
+    Remove or update model overrides as needed.
+  </Accordion>
+</AccordionGroup>
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="ai" href="./ai">
+    Run AI prompts with provider switching
+  </Card>
+  <Card title="ai-sessions" href="./ai-sessions">
+    List active AI sessions
+  </Card>
+</CardGroup>

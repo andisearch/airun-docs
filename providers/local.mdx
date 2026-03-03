@@ -1,0 +1,283 @@
+---
+title: Local Providers
+description: Run AI models locally with Ollama or LM Studio
+---
+
+Local providers run AI models on your hardware, offering free, private AI with no API costs.
+
+## Hardware Requirements
+
+Running local models requires significant RAM/VRAM:
+
+- **Capable coding models** (30B+ parameters) need **24GB+ VRAM** or unified memory (Apple Silicon M2 Pro/Max and above)
+- **Smaller models** run on less hardware but may struggle with complex coding tasks
+- **Systems with limited VRAM**: Ollama's cloud models are an excellent free alternative — they run on Ollama's servers with no local GPU needed
+
+### Recommended Hardware
+
+| Hardware | Capability | Recommended Models |
+|----------|------------|--------------------|
+| **Apple Silicon M2 Pro/Max+** (32GB+) | High | qwen3-coder (local), MLX models |
+| **NVIDIA 3090/4090** (24GB+) | High | qwen3-coder, gpt-oss:20b |
+| **Mid-range GPU** (12-24GB) | Mid | gpt-oss:20b, qwen2.5-coder:14b |
+| **Low-end GPU** (under 12GB) | Low | Use Ollama Cloud models |
+| **CPU only** | Minimal | Use Ollama Cloud (recommended) |
+
+## Ollama
+
+Ollama runs models locally (free) or on Ollama's cloud (no GPU needed).
+
+### Installation
+
+<CodeGroup>
+```bash macOS
+brew install ollama
+```
+
+```bash Linux / Windows (WSL)
+curl -fsSL https://ollama.com/install.sh | sh
+```
+</CodeGroup>
+
+### Quick Setup (Recommended)
+
+Ollama 0.15+ can auto-configure Claude Code:
+
+```bash
+ollama launch claude          # Interactive setup, picks model, launches Claude
+ollama launch claude --config # Configure only, don't launch
+```
+
+### Cloud Models (No GPU Required)
+
+Cloud models run on Ollama's infrastructure — ideal if your system doesn't have enough VRAM for local models. Pull the manifest first (tiny download, the model runs remotely):
+
+```bash
+ollama pull minimax-m2.5:cloud       # Tiny download, runs remotely
+ai --ollama --model minimax-m2.5:cloud
+```
+
+#### Available Cloud Models
+
+| Cloud Model | SWE-bench | Params (active) | Best For | License |
+|-------------|-----------|-----------------|----------|----------|
+| `minimax-m2.5:cloud` | 80.2% | 230B MoE (10B) | Coding, agentic workflows | MIT |
+| `glm-5:cloud` | 77.8% | 744B MoE (40B) | Reasoning, math, knowledge | MIT |
+
+<Tip>
+See [Ollama cloud models](https://ollama.com/search?c=cloud) for the full list.
+</Tip>
+
+### Local Models (Free, Private)
+
+Local models require sufficient VRAM — 24GB+ recommended for capable coding models.
+
+```bash
+ollama pull qwen3-coder   # Coding optimized (needs 24GB+ VRAM)
+ai --ollama
+```
+
+#### Recommended Local Models
+
+| Model | Size | VRAM Needed | Best For |
+|-------|------|-------------|----------|
+| `qwen3-coder` | 30B | ~28GB | Coding tasks, large context |
+| `gpt-oss:20b` | 20B | ~16GB | Strong general-purpose |
+| `qwen2.5-coder:14b` | 14B | ~12GB | Mid-range GPUs |
+| `qwen2.5-coder:7b` | 7B | ~8GB | Limited VRAM |
+
+### Model Aliases
+
+Create aliases for tools expecting Anthropic model names:
+
+```bash
+ollama cp qwen3-coder claude-sonnet-4-6
+ai --ollama --model claude-sonnet-4-6
+```
+
+### Configuration
+
+Override defaults in `~/.ai-runner/secrets.sh`:
+
+```bash
+export OLLAMA_MODEL_MID="qwen3-coder"        # Default model
+export OLLAMA_SMALL_FAST_MODEL="qwen3-coder" # Background model (or leave empty to use same)
+```
+
+<Warning>
+By default, Ollama uses the same model for both main and background operations to avoid VRAM swapping. Only set `OLLAMA_SMALL_FAST_MODEL` if you have 24GB+ VRAM.
+</Warning>
+
+### Auto-Download Feature
+
+When you specify a model that isn't installed locally, Andi AIRun offers a choice between local and cloud:
+
+```bash
+ai --ollama --model qwen3-coder
+# Model 'qwen3-coder' not found locally.
+#
+# Your system has ~32GB usable VRAM.
+#
+# Options:
+#   1) Pull local version (recommended) - qwen3-coder
+#   2) Use cloud version - qwen3-coder:cloud
+#
+# Choice [1]: 1
+# Pulling model: qwen3-coder
+# [##################################################] 100%
+# Model pulled successfully
+```
+
+For systems with limited VRAM (< 20GB), cloud is recommended first.
+
+### Usage Examples
+
+```bash
+# Use default model
+ai --ollama
+
+# Use cloud model
+ai --ollama --model glm-5:cloud
+
+# Use specific local model
+ai --ollama --model qwen3-coder
+
+# Use with tier flags
+ai --ollama --opus  # Uses OLLAMA_MODEL_HIGH if set
+```
+
+<Card title="Ollama Anthropic API Compatibility" icon="book" href="https://docs.ollama.com/api/anthropic-compatibility">
+  Learn more about Ollama's Anthropic API compatibility
+</Card>
+
+---
+
+## LM Studio
+
+LM Studio runs local models with Anthropic API compatibility. Especially powerful on Apple Silicon with MLX models. Requires sufficient RAM/VRAM for the model you choose.
+
+### Advantages Over Ollama
+
+- **MLX model support** (significantly faster on Apple Silicon)
+- **GGUF + MLX formats** supported
+- **Bring your own models** from HuggingFace
+
+### Installation
+
+Download from [lmstudio.ai](https://lmstudio.ai)
+
+### Setup
+
+1. **Download a model** in LM Studio (e.g., from HuggingFace)
+2. **Load the model** in LM Studio UI
+3. **Start the server:**
+   ```bash
+   lms server start --port 1234
+   ```
+   Or start from the LM Studio app's local server tab.
+
+4. **Run Andi AIRun:**
+   ```bash
+   ai --lmstudio
+   # or
+   ai --lm
+   ```
+
+### Recommended Models
+
+For Claude Code, use models with:
+- **25K+ context window** (required for Claude Code's heavy context usage)
+- **Function calling / tool use support**
+
+Examples:
+- `openai/gpt-oss-20b` - Strong general-purpose
+- `ibm/granite-4-micro` - Fast, efficient
+
+### Apple Silicon Optimization
+
+LM Studio supports **MLX models** which are significantly faster than GGUF on M1/M2/M3/M4 chips. When downloading models, look for MLX versions for best performance.
+
+<Tip>
+MLX models can be **2-3x faster** than GGUF on Apple Silicon due to optimized metal acceleration.
+</Tip>
+
+### Configuration
+
+Override defaults in `~/.ai-runner/secrets.sh`:
+
+```bash
+export LMSTUDIO_HOST="http://localhost:1234"     # Custom server URL
+export LMSTUDIO_MODEL_MID="openai/gpt-oss-20b"   # Default model
+export LMSTUDIO_MODEL_HIGH="openai/gpt-oss-20b"  # High tier model
+export LMSTUDIO_MODEL_LOW="ibm/granite-4-micro"  # Low tier model
+```
+
+<Warning>
+By default, LM Studio uses the same model for all tiers and background operations to avoid model swapping.
+</Warning>
+
+### Context Window
+
+Configure context size in LM Studio:
+- **UI**: Settings → Context Length
+- **Minimum recommended**: 25K tokens
+- **Higher is better** for complex coding tasks
+
+### Auto-Download Feature
+
+When you specify a model that isn't available, Andi AIRun will offer to download it:
+
+```bash
+ai --lm --model lmstudio-community/qwen3-8b-gguf
+# Model 'lmstudio-community/qwen3-8b-gguf' not found in LM Studio.
+# Download it? [Y/n]: y
+# Downloading model: lmstudio-community/qwen3-8b-gguf
+# Progress: 100.0%
+# Model downloaded successfully
+# Load it now? [Y/n]: y
+# Model loaded
+```
+
+### Usage Examples
+
+```bash
+# Use default model
+ai --lmstudio
+
+# Use short alias
+ai --lm
+
+# Use specific model
+ai --lm --model openai/gpt-oss-20b
+
+# Use with tier flags
+ai --lm --opus  # Uses LMSTUDIO_MODEL_HIGH if set
+```
+
+<Card title="LM Studio Claude Code Guide" icon="book" href="https://lmstudio.ai/blog/claudecode">
+  Learn more about using LM Studio with Claude Code
+</Card>
+
+---
+
+## Comparison: Ollama vs LM Studio
+
+| Feature | Ollama | LM Studio |
+|---------|--------|------------|
+| **Cloud models** | ✅ Yes (free) | ❌ No |
+| **MLX support** | ❌ No | ✅ Yes (faster on Apple Silicon) |
+| **Model formats** | Ollama format | GGUF, MLX |
+| **Model library** | Curated | HuggingFace, custom |
+| **Setup** | Command-line focused | GUI-focused |
+| **Best for** | Quick start, cloud fallback | Apple Silicon, custom models |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Cloud Providers" icon="cloud" href="/providers/cloud">
+    Configure cloud providers for more powerful models
+  </Card>
+  <Card title="Switching Providers" icon="arrow-right-arrow-left" href="/providers/switching">
+    Learn to switch between providers seamlessly
+  </Card>
+</CardGroup>

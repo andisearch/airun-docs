@@ -1,0 +1,397 @@
+---
+title: 'Script Variables'
+description: 'Make scripts reusable with YAML front-matter and CLI overrides'
+---
+
+## Overview
+
+Script variables let you write reusable markdown scripts with customizable parameters. Users can override variables from the command line without editing the script itself.
+
+## YAML Front-Matter Syntax
+
+Declare variables in a YAML front-matter block at the top of your script:
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+---
+vars:
+  topic: "machine learning"
+  style: casual
+  audience:
+---
+Write a summary of {{topic}} in {{style}} style.
+Target audience: {{audience}}.
+```
+
+### Syntax Rules
+
+- **Opt-in:** Variables only activate when front-matter contains `vars:`. No `vars:` = no behavior change.
+- **Front-matter stripped:** The `---` block is removed from the prompt when `vars:` is present.
+- **Default values:** Variables can have default values (like `topic: "machine learning"`)
+- **No default:** Variables declared with just the key (like `audience:`) have no default value
+
+## Placeholder Substitution
+
+Use `{{varname}}` syntax to insert variable values into your prompt:
+
+```markdown
+Write a {{length}} summary of {{topic}} in a {{style}} tone.
+```
+
+The `{{placeholder}}` syntax:
+- Doesn't collide with shell variables (`$VAR`)
+- Doesn't collide with markdown syntax
+- Doesn't collide with Claude syntax
+- Is visually distinct and easy to read
+
+### Unset Variables
+
+A variable declared with no default (just `key:`) and no CLI override leaves `{{key}}` as-is in the prompt:
+
+```markdown
+---
+vars:
+  topic:
+---
+Summarize {{topic}}.
+```
+
+Without `--topic` flag: "Summarize {{topic}}." (literal text)
+With `--topic "AI"`: "Summarize AI."
+
+## CLI Overrides
+
+Override variables from the command line using flag syntax:
+
+```bash
+./script.md --varname value
+./script.md --varname="value with spaces"
+```
+
+### Examples
+
+Given this script:
+
+```markdown summarize-topic.md
+#!/usr/bin/env -S ai --haiku
+---
+vars:
+  topic: "machine learning"
+  style: casual
+  length: short
+---
+Write a {{length}} summary of {{topic}} in a {{style}} tone.
+```
+
+Run with defaults:
+```bash
+./summarize-topic.md
+# Uses: topic="machine learning", style=casual, length=short
+```
+
+Override one variable:
+```bash
+./summarize-topic.md --topic "AI safety"
+# Uses: topic="AI safety", style=casual, length=short
+```
+
+Override multiple variables:
+```bash
+./summarize-topic.md --topic "AI safety" --style formal
+# Uses: topic="AI safety", style=formal, length=short
+```
+
+Equals form works too:
+```bash
+./summarize-topic.md --topic="robotics" --length="100 words"
+```
+
+## Mixing with AI Runner Flags
+
+Variable overrides mix freely with AI Runner flags and provider overrides:
+
+```bash
+# --live is an AI Runner flag, --topic is a variable override
+./summarize-topic.md --live --topic "quantum computing"
+
+# Override provider + model alongside variables
+ai --aws --opus summarize-topic.md --topic "the fall of rome"
+
+# All together
+./summarize-topic.md --live --length "100 words" --topic "the fall of rome" --style "peter griffin"
+```
+
+### How Flag Consumption Works
+
+Override flags matching declared var names are consumed by the variable system — they don't pass through to Claude Code:
+
+- `--topic`, `--style`, `--length` are consumed (match declared vars)
+- `--live`, `--aws`, `--opus` pass through to AI Runner
+- Unrecognized flags (like `--verbose`) pass through to Claude Code
+
+## Complete Example
+
+Here's a real-world script with variables:
+
+```markdown summarize-topic.md
+#!/usr/bin/env -S ai --haiku
+---
+vars:
+  topic: "machine learning"
+  style: casual
+  length: short
+---
+Write a {{length}} summary of {{topic}} in a {{style}} tone.
+```
+
+### Usage Examples
+
+**Default behavior:**
+```bash
+./summarize-topic.md
+```
+Output: Short, casual summary of machine learning
+
+**Override topic:**
+```bash
+./summarize-topic.md --topic "quantum computing"
+```
+Output: Short, casual summary of quantum computing
+
+**Override all variables:**
+```bash
+./summarize-topic.md \
+  --topic "the fall of rome" \
+  --style "peter griffin" \
+  --length "100 words"
+```
+Output: 100-word summary of the fall of Rome in Peter Griffin's style
+
+**With live streaming:**
+```bash
+./summarize-topic.md --live --topic "AI safety"
+```
+Output: Streams the summary in real-time
+
+**With provider override:**
+```bash
+ai --aws --opus summarize-topic.md --topic "climate change" --style formal
+```
+Uses AWS Bedrock with Claude Opus, formal style summary of climate change
+
+## Advanced Patterns
+
+### Optional vs Required Variables
+
+**Optional (with default):**
+```markdown
+---
+vars:
+  format: markdown
+  verbose: false
+---
+Generate output in {{format}} format. Verbose mode: {{verbose}}.
+```
+
+**Required (no default):**
+```markdown
+---
+vars:
+  target_file:
+  operation:
+---
+Perform {{operation}} on {{target_file}}.
+```
+
+Users must provide `--target_file` and `--operation` or the placeholders remain literal.
+
+### Multiple Scripts with Shared Variables
+
+Create a family of scripts that accept the same variables:
+
+```markdown analyze.md
+---
+vars:
+  language: python
+  depth: basic
+---
+Analyze {{language}} code with {{depth}} depth.
+```
+
+```markdown review.md
+---
+vars:
+  language: python
+  depth: basic
+---
+Review {{language}} code for {{depth}} issues.
+```
+
+Both scripts accept the same flags:
+```bash
+./analyze.md --language go --depth thorough
+./review.md --language go --depth thorough
+```
+
+### Pipeline with Variables
+
+Pass variables through a pipeline:
+
+```bash
+./extract.md --source data.json | \
+./transform.md --format csv | \
+./validate.md --schema schema.json > output.csv
+```
+
+Each script in the pipeline can have its own variables.
+
+## Common Use Cases
+
+### 1. Documentation Generator
+
+```markdown generate-docs.md
+#!/usr/bin/env -S ai --skip
+---
+vars:
+  source_dir: src
+  output_file: ARCHITECTURE.md
+  style: technical
+---
+Read files in {{source_dir}}/
+Generate {{output_file}} documenting the codebase.
+Use {{style}} writing style.
+```
+
+Usage:
+```bash
+./generate-docs.md
+./generate-docs.md --source_dir lib --output_file README.md --style casual
+```
+
+### 2. Test Runner
+
+```markdown run-tests.md
+#!/usr/bin/env -S ai --skip
+---
+vars:
+  test_pattern: "*.test.js"
+  framework: jest
+  coverage: false
+---
+Run tests matching {{test_pattern}} using {{framework}}.
+Generate coverage report: {{coverage}}.
+```
+
+Usage:
+```bash
+./run-tests.md
+./run-tests.md --test_pattern "integration/*.test.ts" --coverage true
+```
+
+### 3. Code Reviewer
+
+```markdown review.md
+#!/usr/bin/env -S ai --opus
+---
+vars:
+  focus: security
+  severity: high
+  output_format: markdown
+---
+Review code for {{focus}} issues.
+Only report {{severity}} severity and above.
+Output in {{output_format}} format.
+```
+
+Usage:
+```bash
+./review.md
+./review.md --focus performance --severity medium --output_format json
+```
+
+### 4. Data Analyzer
+
+```markdown analyze-data.md
+#!/usr/bin/env ai
+---
+vars:
+  metric: revenue
+  period: monthly
+  visualization: false
+---
+Analyze {{metric}} trends over {{period}} periods.
+Include visualization: {{visualization}}.
+```
+
+Usage:
+```bash
+cat data.csv | ./analyze-data.md --metric users --period weekly
+```
+
+## Best Practices
+
+<Check>
+**Do:**
+- Provide sensible defaults for optional parameters
+- Use descriptive variable names (`source_dir` not `src`)
+- Document expected values in comments
+- Keep variable names lowercase with underscores
+- Use boolean variables for feature flags (`verbose: false`)
+</Check>
+
+<Warning>
+**Don't:**
+- Use variable names that conflict with AI Runner flags (`--live`, `--aws`)
+- Put sensitive data in default values (use environment variables instead)
+- Create too many variables (makes scripts hard to use)
+- Use complex variable names (`target_file_for_processing` → `target_file`)
+</Warning>
+
+## Troubleshooting
+
+### Variables Not Substituting
+
+**Problem:** `{{topic}}` appears literally in output
+
+**Solutions:**
+1. Check YAML syntax (must have `vars:` key)
+2. Ensure front-matter is at the top of the file
+3. Verify closing `---` after front-matter
+4. Check variable is declared in `vars:` block
+
+### CLI Override Not Working
+
+**Problem:** `--topic "AI"` doesn't override the default
+
+**Solutions:**
+1. Check variable is declared in front-matter
+2. Verify flag syntax: `--topic value` or `--topic="value"`
+3. Check for typos in variable name
+4. Ensure flag comes after script name: `./script.md --topic "AI"`
+
+### Conflicts with Claude Code Flags
+
+**Problem:** `--format json` is interpreted as a variable instead of a Claude Code flag
+
+**Solution:** Don't declare variables with names that match Claude Code flags. Common conflicts to avoid:
+- `--live`
+- `--quiet`
+- `--output-format`
+- `--max-turns`
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Writing Scripts" icon="scroll" href="/guides/scripting">
+    Learn script basics and common patterns
+  </Card>
+  <Card title="Live Output" icon="signal-stream" href="/guides/live-output">
+    Stream progress in real-time
+  </Card>
+  <Card title="CI/CD Automation" icon="gears" href="/guides/automation">
+    Use variables in CI/CD pipelines
+  </Card>
+  <Card title="Permissions" icon="shield-check" href="/guides/permissions">
+    Control what scripts can do
+  </Card>
+</CardGroup>

@@ -1,0 +1,438 @@
+---
+title: Installation
+description: Complete installation guide for Andi AIRun with provider configuration and verification
+---
+
+# Installation
+
+This guide covers installation, configuration, and verification of Andi AIRun on all supported platforms.
+
+## Supported Platforms
+
+- **macOS** 13.0+
+- **Linux** (Ubuntu 20.04+, Debian 10+)
+- **Windows** 10+ via WSL
+
+## Prerequisites
+
+Before installing AIRun, you need [Claude Code](https://claude.ai/code) installed on your system.
+
+<Steps>
+  <Step title="Check if Claude Code is installed">
+    ```bash
+    claude --version
+    ```
+    
+    If this command works, you already have Claude Code installed and can skip to the next section.
+  </Step>
+
+  <Step title="Install Claude Code">
+    If Claude Code is not installed, run:
+    
+    ```bash
+    curl -fsSL https://claude.ai/install.sh | bash
+    ```
+    
+    <Note>
+      You'll need an active Claude subscription (Pro or Max) or API credentials to use Claude Code.
+    </Note>
+  </Step>
+</Steps>
+
+## Install AIRun
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/andisearch/airun.git
+    cd airun
+    ```
+  </Step>
+
+  <Step title="Run the setup script">
+    ```bash
+    ./setup.sh
+    ```
+    
+    The setup script will:
+    - Install commands to `/usr/local/bin` (may require sudo)
+    - Create `~/.ai-runner/` configuration directory
+    - Copy `secrets.example.sh` to `~/.ai-runner/secrets.sh`
+    - Install library scripts to `/usr/local/share/ai-runner`
+    - Migrate existing `~/.claude-switcher/` configuration if present
+    
+    <Note>
+      The setup is **non-destructive**. Your plain `claude` command always works untouched as before. All AIRun operations are session-scoped and automatically restore your original configuration on exit.
+    </Note>
+  </Step>
+
+  <Step title="Verify installation">
+    ```bash
+    ai --version
+    ```
+    
+    You should see the AIRun version number (e.g., `ai-runner v1.2.0`).
+  </Step>
+</Steps>
+
+## Configure Providers
+
+AIRun supports multiple AI providers. You only need to configure the providers you want to use.
+
+<Steps>
+  <Step title="Open the secrets file">
+    ```bash
+    nano ~/.ai-runner/secrets.sh
+    ```
+    
+    This file contains templates for all supported providers. Uncomment and fill in the credentials for the providers you want to use.
+  </Step>
+
+  <Step title="Configure your providers">
+    Choose the providers you want to configure:
+    
+    <Accordion title="Local Providers (Free, No API Keys)">
+      **Ollama** - Runs models locally or on Ollama's cloud:
+      
+      ```bash
+      # Install Ollama
+      brew install ollama                   # macOS
+      curl -fsSL https://ollama.com/install.sh | sh  # Linux / WSL
+      
+      # Quick setup (Ollama 0.15+)
+      ollama launch claude                  # Auto-configure and launch Claude Code
+      
+      # Or manual setup
+      ollama pull qwen3-coder               # Pull a model (needs 24GB+ VRAM)
+      ai --ollama                           # Run with Ollama
+      
+      # Cloud models — no GPU required, runs on Ollama's servers
+      ollama pull minimax-m2.5:cloud        # Best coding (80% SWE-bench, MIT)
+      ollama pull glm-5:cloud               # Best reasoning (78% SWE-bench, MIT)
+      ai --ollama --model minimax-m2.5:cloud
+      ```
+      
+      <Note>
+        **Hardware note**: Coding models need 24GB+ VRAM (or unified memory on Apple Silicon). Ollama's cloud models work on any hardware.
+      </Note>
+      
+      **LM Studio** - Local models with MLX support (fast on Apple Silicon):
+      
+      ```bash
+      # 1. Download from lmstudio.ai and load a model
+      # 2. Start the server: lms server start --port 1234
+      ai --lm                               # Run with LM Studio
+      ```
+    </Accordion>
+    
+    <Accordion title="AWS Bedrock">
+      Add to `~/.ai-runner/secrets.sh`:
+      
+      ```bash
+      # Option 1: AWS Bedrock API Key (recommended for simplicity)
+      export AWS_BEARER_TOKEN_BEDROCK="your-bedrock-api-key"
+      
+      # Option 2: AWS Access Keys
+      export AWS_ACCESS_KEY_ID="your_access_key"
+      export AWS_SECRET_ACCESS_KEY="your_secret_key"
+      export AWS_SESSION_TOKEN="your_session_token"  # Optional, for temporary credentials
+      
+      # Option 3: AWS Profile
+      export AWS_PROFILE="your-profile-name"
+      
+      # Required for all AWS auth methods:
+      export AWS_REGION="us-west-2"
+      ```
+      
+      See [Claude Code AWS Bedrock docs](https://code.claude.com/docs/en/amazon-bedrock) for more details.
+    </Accordion>
+    
+    <Accordion title="Google Vertex AI">
+      Add to `~/.ai-runner/secrets.sh`:
+      
+      ```bash
+      # Required
+      export ANTHROPIC_VERTEX_PROJECT_ID="your_gcp_project_id"
+      export CLOUD_ML_REGION="global"  # or "us-east5", "us-central1", etc.
+      ```
+      
+      Google Cloud Authentication (in precedence order):
+      
+      1. **Service Account Key File** (highest precedence, recommended for production/CI):
+         ```bash
+         export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account-key.json"
+         ```
+      
+      2. **Application Default Credentials** (recommended for local development):
+         ```bash
+         gcloud auth application-default login
+         # No additional environment variable needed
+         ```
+      
+      3. **gcloud User Credentials** (fallback):
+         ```bash
+         gcloud auth login
+         # No additional environment variable needed
+         ```
+      
+      AIRun automatically detects and uses the appropriate method.
+      
+      See [Claude Code Vertex AI docs](https://code.claude.com/docs/en/google-vertex-ai) for more details.
+    </Accordion>
+    
+    <Accordion title="Anthropic API">
+      Add to `~/.ai-runner/secrets.sh`:
+      
+      ```bash
+      export ANTHROPIC_API_KEY="sk-ant-..."
+      ```
+      
+      Get your API key from [console.anthropic.com](https://console.anthropic.com/).
+    </Accordion>
+    
+    <Accordion title="Microsoft Azure">
+      Add to `~/.ai-runner/secrets.sh`:
+      
+      ```bash
+      # Option 1: API Key authentication
+      export ANTHROPIC_FOUNDRY_API_KEY="your-azure-api-key"
+      
+      # Option 2: Use Azure default credential chain (az login)
+      # If ANTHROPIC_FOUNDRY_API_KEY is not set, Azure default credentials will be used
+      
+      # Required: Azure resource name or full base URL
+      export ANTHROPIC_FOUNDRY_RESOURCE="your-resource-name"
+      # Or provide the full URL:
+      # export ANTHROPIC_FOUNDRY_BASE_URL="https://your-resource-name.services.ai.azure.com"
+      ```
+      
+      See [Claude Code Azure docs](https://code.claude.com/docs/en/microsoft-foundry) for more details.
+    </Accordion>
+    
+    <Accordion title="Vercel AI Gateway">
+      Add to `~/.ai-runner/secrets.sh`:
+      
+      ```bash
+      export VERCEL_AI_GATEWAY_TOKEN="vck_..."
+      export VERCEL_AI_GATEWAY_URL="https://ai-gateway.vercel.sh"  # Default, can be customized
+      ```
+      
+      Get your token from the [Vercel dashboard](https://vercel.com/dashboard/~/ai).
+      
+      Vercel AI Gateway supports 100+ models from OpenAI, xAI, Google, Meta, and more. See [vercel.com/ai-gateway](https://vercel.com/ai-gateway).
+    </Accordion>
+  </Step>
+
+  <Step title="Save the file">
+    After adding your credentials, save and close the file.
+    
+    <Warning>
+      The `secrets.sh` file contains sensitive credentials. Keep it secure and never commit it to version control.
+    </Warning>
+  </Step>
+</Steps>
+
+## Verify Configuration
+
+<Steps>
+  <Step title="Check overall status">
+    ```bash
+    ai-status
+    ```
+    
+    This command shows:
+    - Current tool and provider
+    - Authentication method
+    - Configured models
+    - Available providers
+    
+    Look for green checkmarks next to providers you've configured.
+  </Step>
+
+  <Step title="Test with your default provider">
+    ```bash
+    ai
+    ```
+    
+    This launches an interactive Claude Code session. You should see a message indicating which provider and model are active.
+    
+    Type `/status` in Claude to verify the authentication method.
+  </Step>
+
+  <Step title="Test provider switching">
+    Try switching to different providers:
+    
+    ```bash
+    # Test Ollama (if configured)
+    ai --ollama
+    
+    # Test AWS Bedrock (if configured)
+    ai --aws
+    
+    # Test with specific model tier
+    ai --vertex --opus
+    ```
+    
+    Each command should launch Claude Code with the specified provider.
+  </Step>
+</Steps>
+
+## Model Configuration (Optional)
+
+AIRun uses sensible default models for each provider, but you can override them.
+
+### Default Model Tiers
+
+AIRun provides three model tiers:
+
+- `--opus` / `--high` - Highest-tier model (Opus 4.6)
+- `--sonnet` / `--mid` - Mid-tier model (Sonnet 4.6, default for cloud providers)
+- `--haiku` / `--low` - Lowest-tier model (Haiku 4.5, fastest)
+
+### Override Default Models
+
+To use different model versions, add overrides to `~/.ai-runner/secrets.sh`:
+
+```bash
+# AWS Bedrock Models
+export CLAUDE_MODEL_SONNET_AWS="global.anthropic.claude-sonnet-4-6"
+export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-6-v1"
+export CLAUDE_MODEL_HAIKU_AWS="us.anthropic.claude-haiku-4-5-20251001-v1:0"
+
+# Google Vertex Models
+export CLAUDE_MODEL_SONNET_VERTEX="claude-sonnet-4-6"
+export CLAUDE_MODEL_OPUS_VERTEX="claude-opus-4-6"
+export CLAUDE_MODEL_HAIKU_VERTEX="claude-haiku-4-5@20251001"
+
+# Anthropic API Models
+export CLAUDE_MODEL_SONNET_ANTHROPIC="claude-sonnet-4-6"
+export CLAUDE_MODEL_OPUS_ANTHROPIC="claude-opus-4-6"
+export CLAUDE_MODEL_HAIKU_ANTHROPIC="claude-haiku-4-5"
+```
+
+### Dual Model Configuration
+
+Claude Code uses two models:
+
+1. **`ANTHROPIC_MODEL`** - Main model for interactive work
+2. **`ANTHROPIC_SMALL_FAST_MODEL`** - Background operations (defaults to Haiku)
+
+You can override the small/fast model:
+
+```bash
+# AWS Bedrock Small/Fast Model
+export CLAUDE_SMALL_FAST_MODEL_AWS="us.anthropic.claude-haiku-4-5-20251001-v1:0"
+```
+
+## Set Default Provider
+
+Save your preferred provider and model as the default:
+
+```bash
+# Set default
+ai --aws --opus --set-default
+
+# Now 'ai' uses AWS + Opus by default
+ai task.md
+
+# Clear default
+ai --clear-default
+```
+
+## Updating
+
+<Steps>
+  <Step title="Update AIRun">
+    ```bash
+    ai update
+    ```
+    
+    Or manually:
+    ```bash
+    cd airun && git pull && ./setup.sh
+    ```
+  </Step>
+</Steps>
+
+AIRun checks for updates once every 24 hours (non-blocking) and shows a notice when a new version is available. Your API keys in `~/.ai-runner/secrets.sh` are preserved during updates.
+
+<Note>
+  Disable update checks by setting: `export AI_NO_UPDATE_CHECK=1` in your `~/.ai-runner/secrets.sh`
+</Note>
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Still getting rate limits after switching to API?">
+    1. Verify API key: `grep ANTHROPIC_API_KEY ~/.ai-runner/secrets.sh`
+    2. Confirm you're using `ai` (not plain `claude`)
+    3. Run `ai-status` during the session
+    4. In Claude, run `/status` to see authentication method
+  </Accordion>
+
+  <Accordion title="Switching back to Pro not working?">
+    1. Use `ai --pro` or plain `claude`
+    2. Run `/status` in Claude to verify authentication
+  </Accordion>
+
+  <Accordion title="Local provider (Ollama/LM Studio) not connecting?">
+    1. Verify the server is running:
+       ```bash
+       # For Ollama
+       ollama list
+       
+       # For LM Studio
+       curl http://localhost:1234/v1/models
+       ```
+    2. Check the host configuration in `~/.ai-runner/secrets.sh`
+    3. Ensure you have a model loaded
+  </Accordion>
+
+  <Accordion title="Permission errors during setup?">
+    The setup script needs write access to `/usr/local/bin`. If you see permission errors:
+    
+    ```bash
+    sudo ./setup.sh
+    ```
+    
+    The script will automatically request sudo access only if needed.
+  </Accordion>
+</AccordionGroup>
+
+### Session-Scoped Behavior
+
+`ai` with no flags uses your regular Claude subscription, identical to running `claude` directly. Provider flags (`--aws`, `--ollama`, etc.) only affect the current session:
+
+- On exit, your original Claude settings are automatically restored
+- Plain `claude` in another terminal is completely unaffected
+- No global configuration is changed
+
+## Uninstallation
+
+To remove AIRun:
+
+```bash
+cd airun
+./uninstall.sh
+```
+
+This removes all installed commands and optionally removes the configuration directory.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Create and run your first executable AI script
+  </Card>
+  <Card title="Examples" icon="code" href="#examples">
+    Explore example scripts and use cases
+  </Card>
+  <Card title="Scripting Guide" icon="scroll" href="#scripting">
+    Learn advanced scripting patterns
+  </Card>
+  <Card title="Provider Guide" icon="cloud" href="#providers">
+    Detailed provider setup and model recommendations
+  </Card>
+</CardGroup>

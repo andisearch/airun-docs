@@ -1,0 +1,399 @@
+---
+title: "Unix Pipes"
+description: "Chain AI scripts together with stdin/stdout for automation pipelines"
+icon: "pipe"
+---
+
+Andi AIRun scripts follow Unix philosophy: read from stdin, write to stdout, chain together in pipelines. This enables powerful automation workflows where AI scripts act as composable filters.
+
+## Stdin/Stdout Handling
+
+Executable markdown scripts have proper Unix stream semantics:
+
+- **Stdin support**: Pipe data directly into scripts
+- **Clean stdout**: AI responses go to stdout when redirected
+- **Diagnostic stderr**: Status messages and progress go to stderr
+- **Chainable**: Connect scripts in pipelines like standard Unix tools
+
+### Basic Piping
+
+Pipe data into a script:
+
+```bash
+cat data.json | ./analyze.md
+git log --oneline -20 | ./summarize-changes.md
+echo "Explain what a Dockerfile does" | ai
+```
+
+The piped content is automatically included in the prompt sent to the AI.
+
+### Output Redirection
+
+Redirect AI output to a file:
+
+```bash
+./analyze.md > results.txt
+ai task.md > output.md
+```
+
+When stdout is redirected, you get **only the AI's response** — no status messages, no prompts. Status information goes to stderr so you can still see progress:
+
+```bash
+$ ./analyze.md > results.txt
+[AI Runner] Using: Claude Code + Claude Pro
+[AI Runner] Model: claude-sonnet-4-6
+[Processing...]
+[AI Runner] Done
+```
+
+<Info>
+This clean separation between content (stdout) and diagnostics (stderr) makes AIRun scripts perfect for automation and CI/CD pipelines.
+</Info>
+
+## The stdin-position Flag
+
+By default, piped input is **prepended** to the prompt (added before the script content). Use `--stdin-position` to control where stdin appears:
+
+<CodeGroup>
+```bash Prepend (default)
+cat data.json | ./analyze.md
+# Effective prompt: [data.json contents] + [analyze.md contents]
+```
+
+```bash Append
+cat data.json | ./analyze.md --stdin-position append
+# Effective prompt: [analyze.md contents] + [data.json contents]
+```
+</CodeGroup>
+
+**When to use append:**
+
+Some prompts work better with instructions first, data second:
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Analyze the following JSON data. Extract the top 5 trends and format as markdown.
+```
+
+```bash
+cat data.json | ./analyze.md --stdin-position append
+```
+
+Effective prompt:
+```
+Analyze the following JSON data. Extract the top 5 trends and format as markdown.
+
+[data.json contents]
+```
+
+## Chaining Scripts Together
+
+Chain multiple AI scripts in a pipeline:
+
+```bash
+./generate-report.md | ./format-output.md > final.txt
+./parse-logs.md | ./analyze-patterns.md | ./create-dashboard.md
+```
+
+Each script:
+1. Reads from stdin (previous script's output)
+2. Processes with AI
+3. Writes result to stdout (next script's input)
+
+From the test suite (`test/automation/`):
+
+```bash
+# Three-stage pipeline
+./generate-report.md | ./format-output.md | ./analyze.md > result.txt
+```
+
+<Tip>
+Chained scripts run with process isolation — environment variables are cleared between nested calls, so each script starts fresh. This prevents state leakage and makes pipelines more predictable.
+</Tip>
+
+## Real Examples from the Repository
+
+### Analyze Piped Data
+
+From `examples/analyze-stdin.md`:
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Analyze the data provided on stdin. Summarize the key points, highlight
+anything unusual, and suggest next steps.
+```
+
+**Usage:**
+
+```bash
+cat package.json | ./analyze-stdin.md
+df -h | ./analyze-stdin.md > disk-report.txt
+curl -s https://api.example.com/stats | ./analyze-stdin.md
+```
+
+### Generate and Process
+
+From `test/automation/generate-report.md` and `format-output.md`:
+
+```bash
+# Generate a report
+./generate-report.md > raw-report.txt
+
+# Generate and immediately format
+./generate-report.md | ./format-output.md > formatted.txt
+```
+
+### Git Workflow Integration
+
+```bash
+# Summarize recent commits
+git log -10 --oneline | ./summarize-changes.md
+
+# Analyze diff before committing
+git diff | ./review-changes.md
+
+# Generate commit message from staged changes
+git diff --cached | ./suggest-commit-message.md
+```
+
+### Log Analysis
+
+```bash
+# Analyze application logs
+tail -n 100 app.log | ./analyze-errors.md > error-summary.txt
+
+# Monitor and summarize in real-time
+tail -f access.log | ./detect-anomalies.md
+```
+
+## Live Streaming with Pipes
+
+Combine `--live` with pipes to see real-time progress:
+
+```bash
+cat large-dataset.json | ai --live --skip analyze.md
+```
+
+**Console output (stderr):**
+```
+[AI Runner] Using: Claude Code + Claude Pro
+[AI Runner] Model: claude-sonnet-4-6
+
+I'm analyzing the dataset structure...
+Found 1,247 records spanning 3 categories...
+Detecting outliers in the price field...
+Generating summary statistics...
+```
+
+**File output (stdout):**
+```bash
+cat data.json | ./analyze.md --live > report.md
+```
+
+Narration streams to console (stderr), final report goes to file (stdout).
+
+## Output Redirection with Live Mode
+
+When stdout is redirected with `--live`, AIRun intelligently splits the output:
+
+```bash
+./live-report.md > report.md
+```
+
+**What you see on console (stderr):**
+```
+[AI Runner] Using: Claude Code + Claude Pro
+[AI Runner] Model: claude-sonnet-4-6
+
+I'll explore the repository structure...
+Found 15 source files in src/...
+Analyzing key modules...
+Here's my report:
+[AI Runner] Done (70 lines written)
+```
+
+**What goes to the file (stdout):**
+```markdown
+# Repository Summary
+
+## Overview
+
+This project implements...
+
+## Key Features
+
+1. Executable markdown scripts
+2. Provider switching
+...
+```
+
+The split happens automatically:
+- Intermediate turns (narration) → stderr
+- Final turn preamble (before first `---` or `#`) → stderr  
+- Final turn content (from first marker onward) → stdout
+
+<Info>
+This behavior makes `--live` ideal for long-running scripts where you want to see progress but only capture the final result in a file.
+</Info>
+
+## Shell Script Integration
+
+Use AIRun scripts in traditional shell scripts:
+
+```bash
+#!/bin/bash
+# Batch process log files
+
+for file in logs/*.txt; do
+    echo "Processing $file..."
+    cat "$file" | ./analyze-logs.md >> summary.txt
+    echo "---" >> summary.txt
+done
+
+echo "Analysis complete. Summary saved to summary.txt"
+```
+
+## CI/CD Pipeline Integration
+
+**GitHub Actions example:**
+
+```yaml
+name: AI Code Review
+
+on: [pull_request]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run AI review
+        run: |
+          git diff origin/main...HEAD | ./review-pr.md > review.txt
+          cat review.txt >> $GITHUB_STEP_SUMMARY
+```
+
+**GitLab CI example:**
+
+```yaml
+ai-review:
+  script:
+    - git diff origin/main...HEAD | ./review-changes.md > review.md
+  artifacts:
+    paths:
+      - review.md
+```
+
+## Running Scripts from the Web
+
+AIRun supports `installmd.org` style execution:
+
+```bash
+# Run a script directly from a URL
+curl -fsSL https://example.com/analyze.md | ai
+
+# Override provider from shebang
+curl -fsSL https://example.com/script.md | ai --aws --opus
+
+# Pipe data through a remote script
+cat data.json | curl -fsSL https://example.com/process.md | ai
+```
+
+<Warning>
+Only pipe trusted remote scripts, especially when using permission flags like `--skip` or `--bypass`. Remote scripts have the same access as local scripts.
+</Warning>
+
+## Composable Design Patterns
+
+### Single-Purpose Scripts
+
+Follow Unix philosophy — each script does one thing well:
+
+```bash
+# Extract data
+./extract-metrics.md < raw-data.json > metrics.json
+
+# Transform data
+./normalize-metrics.md < metrics.json > normalized.json
+
+# Generate report
+./create-report.md < normalized.json > report.md
+```
+
+Or chain them:
+
+```bash
+cat raw-data.json | ./extract-metrics.md | ./normalize-metrics.md | ./create-report.md > report.md
+```
+
+### The Dispatcher Pattern
+
+Use `--cc --skip` to give the AI tool access in a top-level script, then call simple prompt-mode scripts from within:
+
+```markdown
+#!/usr/bin/env -S ai --cc --skip --live
+Read all test files in test/ directory.
+For each test file, describe what it tests and verify the assertions are comprehensive.
+Print findings as you go.
+```
+
+The dispatcher has tool access and can:
+- Read files
+- Run commands  
+- Chain to other scripts
+
+Child scripts should be simple prompt-mode (no `--cc`) to avoid nested tool complexity.
+
+<Tip>
+See the [Scripting Guide](/guides/scripting) for more details on the dispatcher pattern and composable script design.
+</Tip>
+
+## stdin Position Examples
+
+### Instructions + Data (append)
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Extract all error messages from the following log data and count occurrences:
+```
+
+```bash
+cat app.log | ./extract-errors.md --stdin-position append
+```
+
+### Data + Question (prepend, default)
+
+```markdown  
+#!/usr/bin/env ai
+What are the top 3 issues in this data?
+```
+
+```bash
+cat issues.json | ./summarize.md
+# Default prepend: data comes first, then question
+```
+
+## Process Isolation
+
+When chaining scripts, AIRun clears inherited environment variables between nested calls:
+
+```bash
+./script1.md | ./script2.md | ./script3.md
+```
+
+Each script:
+- Gets a fresh environment
+- No leaked state from previous scripts
+- Predictable, reproducible behavior
+
+This prevents accidental context leakage and makes pipelines more reliable.
+
+<CardGroup cols={2}>
+  <Card title="Executable Markdown" icon="file-code" href="/concepts/executable-markdown">
+    Learn about shebang support and script structure
+  </Card>
+  <Card title="Scripting Guide" icon="scroll" href="/scripting">
+    Complete guide to writing AI automation scripts
+  </Card>
+</CardGroup>

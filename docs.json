@@ -1,0 +1,119 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "Andi AIRun",
+  "theme": "aspen",
+  "colors": {
+    "primary": "#2563eb",
+    "light": "#60a5fa",
+    "dark": "#1e40af"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/andisearch/airun"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/andisearch/airun"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/executable-markdown",
+              "concepts/unix-pipes",
+              "concepts/provider-switching"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/scripting",
+              "guides/automation",
+              "guides/variables",
+              "guides/live-output",
+              "guides/permissions"
+            ]
+          },
+          {
+            "group": "Providers",
+            "pages": [
+              "providers/overview",
+              "providers/local",
+              "providers/cloud",
+              "providers/switching"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/agent-teams",
+              "advanced/composable-scripts",
+              "advanced/configuration"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI Reference",
+        "groups": [
+          {
+            "group": "Commands",
+            "pages": [
+              "cli/ai",
+              "cli/ai-status",
+              "cli/ai-sessions",
+              "cli/ai-update"
+            ]
+          },
+          {
+            "group": "Flags",
+            "pages": [
+              "cli/provider-flags",
+              "cli/model-flags",
+              "cli/permission-flags",
+              "cli/output-flags"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Examples",
+        "groups": [
+          {
+            "group": "Script Examples",
+            "pages": [
+              "examples/hello-world",
+              "examples/code-analysis",
+              "examples/test-automation",
+              "examples/live-streaming",
+              "examples/stdin-processing"
+            ]
+          },
+          {
+            "group": "Use Cases",
+            "pages": [
+              "examples/ci-cd",
+              "examples/code-review",
+              "examples/data-processing"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

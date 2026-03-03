@@ -1,0 +1,498 @@
+---
+title: "Provider Switching"
+description: "Switch between cloud providers and models to avoid rate limits and optimize costs"
+icon: "arrows-rotate"
+---
+
+Andi AIRun extends Claude Code with multi-provider support. Switch between your Claude subscription, AWS Bedrock, Google Vertex AI, Azure, local models, and more — all using the same `ai` command.
+
+## What Are Providers?
+
+Providers are different backend services that run AI models. Each provider has its own:
+
+- **Authentication**: API keys, credentials, or subscriptions
+- **Pricing**: Some free (local), some pay-per-token (API), some subscription (Claude Pro)
+- **Rate limits**: Different limits per provider and tier
+- **Model selection**: Not all providers have all models
+- **Geographic regions**: Different data residency and compliance
+
+### Available Providers
+
+| Provider | Type | Flag | Notes |
+|----------|------|------|-------|
+| **Claude Pro** | Subscription | `--pro` | Default if logged in, has rate limits |
+| **AWS Bedrock** | Cloud API | `--aws` | Requires AWS credentials |
+| **Google Vertex AI** | Cloud API | `--vertex` | Requires GCP project |
+| **Anthropic API** | Cloud API | `--apikey` | Direct API access |
+| **Azure** | Cloud API | `--azure` | Microsoft Azure Foundry |
+| **Vercel AI Gateway** | Cloud API | `--vercel` | 100+ models from multiple providers |
+| **Ollama** | Local/Cloud | `--ollama` | Free local or cloud models |
+| **LM Studio** | Local | `--lmstudio` | Local models with MLX support |
+
+<Info>
+Providers are configured once in `~/.ai-runner/secrets.sh` and switched with simple flags. No need to edit config files or set environment variables.
+</Info>
+
+## Why Switch Providers?
+
+There are several reasons to switch providers mid-task:
+
+### 1. Avoiding Rate Limits
+
+The most common reason. Claude Pro has rate limits that can block you for hours:
+
+```bash
+# Working with Claude Pro, hit rate limit
+claude
+# "Rate limit exceeded. Try again in 4 hours 23 minutes."
+
+# Immediately continue with AWS
+ai --aws --resume
+```
+
+You can continue your exact conversation on a different provider without losing context.
+
+### 2. Cost Optimization
+
+Different providers have different pricing:
+
+```bash
+# Use cheap Haiku for simple analysis
+ai --aws --haiku analyze-logs.md
+
+# Use expensive Opus for complex reasoning
+ai --aws --opus review-architecture.md
+
+# Use free local model for experimentation
+ai --ollama --model qwen3-coder
+```
+
+### 3. Local vs Cloud
+
+Run models locally for privacy, or in the cloud for power:
+
+```bash
+# Local - free, private, no API calls
+ai --ollama analyze-sensitive-data.md
+
+# Cloud - more powerful, faster
+ai --aws --opus analyze-complex-system.md
+```
+
+### 4. Geographic Compliance
+
+Different providers operate in different regions:
+
+```bash
+# Use GCP for EU data residency
+ai --vertex task.md
+
+# Use Azure for specific compliance requirements
+ai --azure task.md
+```
+
+### 5. Model Availability
+
+Test different models or use alternate AI systems:
+
+```bash
+# Claude via AWS
+ai --aws --opus task.md
+
+# OpenAI via Vercel
+ai --vercel --model openai/gpt-5.2-codex task.md
+
+# xAI via Vercel
+ai --vercel --model xai/grok-code-fast-1 task.md
+
+# Local Ollama
+ai --ollama --model qwen3-coder task.md
+```
+
+## The --resume Flag for Continuity
+
+The `--resume` flag picks up your previous conversation on a different provider:
+
+```bash
+# Start with Claude Pro
+ai
+# [work for a while...]
+# "Rate limit exceeded"
+
+# Resume on AWS with same context
+ai --aws --resume
+```
+
+What `--resume` does:
+- Loads the most recent conversation session
+- Continues from where you left off  
+- Preserves all context and history
+- Works across any provider switch
+
+**Use cases:**
+
+<AccordionGroup>
+  <Accordion title="Rate limit recovery">
+    ```bash
+    ai                    # Hit rate limit
+    ai --aws --resume     # Continue immediately
+    ```
+  </Accordion>
+  
+  <Accordion title="Cost optimization mid-task">
+    ```bash
+    ai --opus             # Start with powerful model
+    ai --haiku --resume   # Switch to cheap model for simple tasks
+    ai --opus --resume    # Back to powerful for complex work
+    ```
+  </Accordion>
+  
+  <Accordion title="Local to cloud escalation">
+    ```bash
+    ai --ollama           # Try local first
+    ai --aws --opus --resume  # Escalate to cloud for hard problem
+    ```
+  </Accordion>
+  
+  <Accordion title="Testing providers">
+    ```bash
+    ai --aws --resume     # Try AWS implementation
+    ai --vertex --resume  # Compare Vertex response
+    ai --azure --resume   # Test Azure behavior
+    ```
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+Use `ai-sessions` to view your active conversation sessions and see which one would be resumed.
+</Tip>
+
+## Session-Scoped Behavior
+
+All provider switches are **session-scoped** — they only affect the current terminal session:
+
+```bash
+# Terminal 1
+ai --aws
+# [Working with AWS...]
+
+# Terminal 2 (unaffected)
+claude
+# [Still using regular Claude Pro]
+```
+
+When you exit an `ai` session:
+- Your original Claude Code settings are automatically restored
+- No global configuration is changed
+- Other terminals are completely unaffected
+
+<Info>
+This non-destructive design means you can safely experiment with providers without breaking your Claude Code installation.
+</Info>
+
+## Setting Default Providers
+
+If you frequently use a specific provider, save it as your default:
+
+```bash
+# Set AWS + Opus as default
+ai --aws --opus --set-default
+
+# Now 'ai' with no flags uses AWS + Opus
+ai
+ai --resume
+
+# Clear saved default
+ai --clear-default
+
+# Back to auto-detection (Claude Pro if logged in)
+ai
+```
+
+Saved defaults are stored in `~/.ai-runner/default.conf`.
+
+**Flag precedence** (highest to lowest):
+
+| Priority | Source | Example |
+|----------|--------|---------|
+| 1. CLI flags | Explicit flags | `ai --vertex task.md` |
+| 2. Shebang flags | Script header | `#!/usr/bin/env -S ai --aws` |
+| 3. Saved defaults | `--set-default` | Set with `ai --aws --set-default` |
+| 4. Auto-detection | Current login | Claude Pro if logged in |
+
+## Provider Examples
+
+### Switch Between Major Clouds
+
+```bash
+# AWS Bedrock
+ai --aws
+ai --aws --opus task.md
+
+# Google Vertex AI
+ai --vertex
+ai --vertex --sonnet task.md
+
+# Microsoft Azure
+ai --azure
+ai --azure --haiku task.md
+```
+
+### Use Anthropic API Directly
+
+```bash
+# Direct API (bypasses subscription limits)
+ai --apikey
+ai --apikey --opus task.md
+```
+
+### Local Models (Free)
+
+```bash
+# Ollama (local)
+ai --ollama
+ai --ollama --model qwen3-coder
+
+# Ollama (cloud, no GPU needed)
+ai --ollama --model minimax-m2.5:cloud
+ai --ollama --model glm-5:cloud
+
+# LM Studio (local, MLX support)
+ai --lmstudio
+ai --lm --model openai/gpt-oss-20b
+```
+
+### Alternate Models via Vercel
+
+```bash
+# OpenAI models
+ai --vercel --model openai/gpt-5.2-codex
+
+# xAI models
+ai --vercel --model xai/grok-code-fast-1
+
+# Google models
+ai --vercel --model google/gemini-3-pro-preview
+
+# Alibaba models
+ai --vercel --model alibaba/qwen3-coder
+```
+
+Vercel AI Gateway gives access to 100+ models from multiple providers through a single API.
+
+## Model Tiers
+
+Most providers support three model tiers:
+
+| Tier | Flags | Use Case | Example |
+|------|-------|----------|----------|
+| **High** | `--opus` / `--high` | Complex reasoning, architecture | Opus 4.6 |
+| **Mid** | `--sonnet` / `--mid` | Balanced coding tasks | Sonnet 4.6 |
+| **Low** | `--haiku` / `--low` | Fast, simple tasks | Haiku 4.5 |
+
+Combine tiers with providers:
+
+```bash
+ai --aws --opus         # AWS Bedrock + Opus
+ai --vertex --sonnet    # Vertex AI + Sonnet  
+ai --azure --haiku      # Azure + Haiku
+```
+
+<Tip>
+Use `--haiku` for cost savings on simple tasks. Use `--opus` for complex architecture decisions or challenging debugging. Use `--sonnet` (default) for everyday coding.
+</Tip>
+
+## Provider Configuration
+
+Providers are configured in `~/.ai-runner/secrets.sh`:
+
+```bash
+# Edit configuration
+nano ~/.ai-runner/secrets.sh
+```
+
+Add credentials for the providers you want to use:
+
+```bash
+# AWS Bedrock
+export AWS_PROFILE="your-profile-name"
+export AWS_REGION="us-west-2"
+
+# Google Vertex AI
+export ANTHROPIC_VERTEX_PROJECT_ID="your-gcp-project-id"
+export CLOUD_ML_REGION="global"
+
+# Anthropic API
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Vercel AI Gateway
+export VERCEL_AI_GATEWAY_TOKEN="vck_..."
+
+# Azure
+export ANTHROPIC_FOUNDRY_API_KEY="your-azure-api-key"
+export ANTHROPIC_FOUNDRY_RESOURCE="your-resource-name"
+
+# Ollama (local)
+# No configuration needed
+
+# LM Studio (local)
+export LMSTUDIO_HOST="http://localhost:1234"  # Optional
+```
+
+You only need to configure the providers you plan to use.
+
+<Info>
+Configuration is loaded at startup. After editing `secrets.sh`, start a new session or run `source ~/.ai-runner/secrets.sh`.
+</Info>
+
+## Check Current Configuration
+
+Use `ai-status` to verify your setup:
+
+```bash
+ai-status
+```
+
+**Example output:**
+
+```
+Andi AIRun Status
+=================
+
+Version: 1.5.0
+
+Providers Configured:
+  ✓ Claude Pro (logged in)
+  ✓ AWS Bedrock (profile: default, region: us-west-2)
+  ✓ Anthropic API (key: sk-ant-...ABC123)
+  ✓ Ollama (local, 3 models available)
+  ✗ Vertex AI (not configured)
+  ✗ Azure (not configured)
+  ✗ Vercel (not configured)
+
+Default Provider: AWS Bedrock + Opus 4.6
+
+Active Sessions: 2
+  - Session 1: AWS Bedrock + Sonnet (started 2h ago)
+  - Session 2: Claude Pro (started 15m ago)
+```
+
+## Advanced: Agent Teams with Any Provider
+
+Agent teams work with all providers:
+
+```bash
+# Claude Pro with teams
+ai --team
+
+# AWS with teams
+ai --aws --opus --team
+
+# Local Ollama with teams
+ai --ollama --team
+```
+
+Teams coordination uses Claude Code's internal task list and mailbox — it's provider-independent. Token usage scales with team size (5 teammates ≈ 5× tokens).
+
+<Warning>
+Agent teams only work in interactive mode — not supported in shebang/piped script modes.
+</Warning>
+
+## Practical Workflows
+
+### Rate Limit Recovery Workflow
+
+```bash
+# 1. Start working with Claude Pro
+ai
+
+# 2. Hit rate limit mid-task
+# "Rate limit exceeded. Try again in 4 hours 23 minutes."
+
+# 3. Immediately switch to API
+ai --aws --resume
+
+# 4. Continue working
+# [Complete the task...]
+
+# 5. Later, switch back to Pro for free tier
+ai --pro --resume
+```
+
+### Cost-Optimized Development
+
+```bash
+# Use free local model for exploration
+ai --ollama
+# [Prototype and experiment...]
+
+# Switch to cloud for production-quality code
+ai --aws --opus --resume
+# [Final implementation...]
+
+# Use cheap Haiku for documentation
+ai --aws --haiku --resume
+# [Generate docs...]
+```
+
+### Multi-Provider Testing
+
+```bash
+# Test a prompt on different providers
+ai --aws task.md > aws-output.txt
+ai --vertex task.md > vertex-output.txt  
+ai --ollama task.md > ollama-output.txt
+
+# Compare results
+diff aws-output.txt vertex-output.txt
+```
+
+### Privacy-Conscious Workflow
+
+```bash
+# Sensitive data analysis (local only)
+ai --ollama analyze-customer-data.md
+
+# Public code review (cloud OK)
+ai --aws review-open-source-pr.md
+```
+
+## View Active Sessions
+
+See all your conversation sessions:
+
+```bash
+ai-sessions
+```
+
+**Example output:**
+
+```
+Active AIRun Sessions:
+
+1. AWS Bedrock + Sonnet 4.6
+   Started: 2 hours ago
+   Location: ~/projects/backend/
+   Status: Active
+
+2. Claude Pro + Opus 4.6  
+   Started: 15 minutes ago
+   Location: ~/projects/frontend/
+   Status: Active
+
+3. Ollama (qwen3-coder)
+   Started: 1 day ago
+   Location: ~/experiments/
+   Status: Idle
+```
+
+The most recent session is used by `--resume`.
+
+<CardGroup cols={2}>
+  <Card title="Provider Setup" icon="gear" href="/providers">
+    Detailed configuration for each provider
+  </Card>
+  <Card title="Executable Markdown" icon="file-code" href="/concepts/executable-markdown">
+    Use provider flags in shebang scripts
+  </Card>
+</CardGroup>

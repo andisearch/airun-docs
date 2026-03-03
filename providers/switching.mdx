@@ -1,0 +1,422 @@
+---
+title: Switching Between Providers
+description: Seamlessly switch providers to avoid rate limits and optimize costs
+---
+
+Andi AIRun makes it easy to switch between providers mid-task, allowing you to work around rate limits, optimize costs, and leverage different models.
+
+## Why Switch Providers?
+
+### Avoid Rate Limits
+
+Claude Pro has usage limits. When you hit a rate limit, switch to an API provider and continue immediately:
+
+```bash
+# Working with Claude Pro, hit rate limit
+ai
+# "Rate limit exceeded. Try again in 4 hours 23 minutes."
+
+# Immediately continue with AWS
+ai --aws --resume
+```
+
+### Optimize Costs
+
+Switch to cheaper models for simple tasks:
+
+```bash
+# Use Haiku for quick edits (faster, cheaper)
+ai --aws --haiku --resume
+
+# Use Ollama for free local inference
+ai --ollama --resume
+```
+
+### Leverage Different Models
+
+Switch to more powerful models for complex reasoning:
+
+```bash
+# Switch to Opus for complex refactoring
+ai --aws --opus --resume
+
+# Try a different model entirely
+ai --vercel --model xai/grok-code-fast-1 --resume
+```
+
+## Using --resume
+
+The `--resume` flag lets you pick up a previous conversation exactly where you left off.
+
+### Basic Resume
+
+```bash
+# Start with Claude Pro
+ai
+
+# Hit rate limit, switch to AWS
+ai --aws --resume
+```
+
+### Resume with Different Tier
+
+```bash
+# Working with Sonnet (default)
+ai --vertex
+
+# Switch to Haiku for speed
+ai --vertex --haiku --resume
+
+# Switch to Opus for complex reasoning
+ai --vertex --opus --resume
+```
+
+### Resume with Different Provider
+
+```bash
+# Start with AWS
+ai --aws
+
+# Switch to Vertex AI
+ai --vertex --resume
+
+# Switch to local Ollama (free!)
+ai --ollama --resume
+```
+
+### Resume with Custom Model
+
+```bash
+# Start with Claude Sonnet
+ai --vercel
+
+# Switch to xAI Grok
+ai --vercel --model xai/grok-code-fast-1 --resume
+```
+
+## Session Continuity
+
+When you use `--resume`, Andi AIRun:
+
+1. **Loads the previous conversation** from your most recent session
+2. **Preserves all context** (files, code, decisions)
+3. **Switches the provider** seamlessly
+4. **Continues the task** without interruption
+
+<Tip>
+The conversation history is stored locally in `~/.ai-runner/sessions/`, so resume works even after closing your terminal.
+</Tip>
+
+## Setting a Default Provider
+
+Avoid typing the provider flag every time by setting a default:
+
+```bash
+# Set AWS Bedrock as default
+ai --aws --set-default
+
+# Now 'ai' uses AWS automatically
+ai
+ai --opus
+ai --haiku
+```
+
+### Setting Default with Custom Model
+
+```bash
+# Set Vercel with xAI Grok as default
+ai --vercel --model xai/grok-code-fast-1 --set-default
+
+# Now 'ai' uses xAI Grok automatically
+ai
+```
+
+### Clearing the Default
+
+```bash
+ai --clear-default
+
+# Now 'ai' uses Claude Pro (if logged in) or first configured provider
+ai
+```
+
+### Overriding the Default
+
+```bash
+# Set AWS as default
+ai --aws --set-default
+
+# Override for one session
+ai --vertex
+
+# Next session uses AWS again
+ai
+```
+
+## Session Isolation
+
+All provider changes are **session-scoped** and **automatically isolated**:
+
+### Terminal Isolation
+
+```bash
+# Terminal 1: Using LM Studio
+ai --lmstudio
+
+# Terminal 2: Using native Claude Pro (unaffected)
+claude
+
+# Terminal 3: Using AWS Bedrock
+ai --aws
+```
+
+Each terminal session is completely independent.
+
+### Auto-Cleanup on Exit
+
+```bash
+ai --lmstudio
+# Session ends (Ctrl+C or naturally)
+
+# Original environment automatically restored
+# No stale state, no files modified
+```
+
+### Process Safety
+
+- **No global state** - changes only affect the current terminal session
+- **No config files modified** - all changes via environment variables
+- **Crash-safe** - no cleanup needed if the session crashes
+- **Multiple sessions** - run different providers simultaneously
+
+## Common Switching Patterns
+
+### Pattern 1: Rate Limit Recovery
+
+```bash
+# Hit rate limit
+ai
+# "Rate limit exceeded. Try again in 4 hours 23 minutes."
+
+# Option 1: Switch to API provider
+ai --aws --resume
+
+# Option 2: Switch to free local
+ai --ollama --resume
+
+# Option 3: Switch to different cloud
+ai --vertex --resume
+```
+
+### Pattern 2: Cost Optimization
+
+```bash
+# Start with powerful model for initial work
+ai --aws --opus
+
+# Switch to cheaper model for refinements
+ai --aws --haiku --resume
+
+# Switch to free local for final tweaks
+ai --ollama --resume
+```
+
+### Pattern 3: Model Experimentation
+
+```bash
+# Try Claude Sonnet first
+ai --apikey
+
+# Not satisfied? Try xAI Grok
+ai --vercel --model xai/grok-code-fast-1 --resume
+
+# Try OpenAI's coding model
+ai --vercel --model openai/gpt-5.2-codex --resume
+
+# Try local model
+ai --ollama --model qwen3-coder --resume
+```
+
+### Pattern 4: Development Workflow
+
+```bash
+# Planning phase: Use powerful model
+ai --aws --opus
+
+# Implementation: Use balanced model
+ai --aws --sonnet --resume
+
+# Testing/debugging: Use fast, cheap model
+ai --aws --haiku --resume
+
+# Refinement: Use free local
+ai --ollama --resume
+```
+
+## Provider-Specific Considerations
+
+### Local Providers (Ollama, LM Studio)
+
+**Pros:**
+- Free (no API costs)
+- No rate limits
+- Private (data stays local)
+- Fast (no network latency)
+
+**Cons:**
+- Requires hardware (VRAM/RAM)
+- Model quality varies
+- Setup required
+
+**Best used for:**
+- Cost-conscious development
+- Private/sensitive code
+- Frequent iterations
+- Learning and experimentation
+
+### Cloud Providers (AWS, Vertex, Anthropic)
+
+**Pros:**
+- Most powerful models
+- No hardware requirements
+- Always available
+- Latest model versions
+
+**Cons:**
+- Pay per use
+- Rate limits (especially Claude Pro)
+- Network dependency
+- Data sent to provider
+
+**Best used for:**
+- Complex reasoning
+- Large refactors
+- Production work
+- Critical tasks
+
+### Vercel AI Gateway
+
+**Pros:**
+- Access to 100+ models
+- Single API for all providers
+- Unified billing
+- Easy switching
+
+**Cons:**
+- Pay per use
+- Network dependency
+- Rate limits vary by model
+
+**Best used for:**
+- Multi-model workflows
+- Experimentation
+- Provider flexibility
+
+## Tips for Effective Switching
+
+### 1. Configure Multiple Providers
+
+Set up 2-3 providers in `secrets.sh` for maximum flexibility:
+
+```bash
+# Primary: Claude Pro (free tier)
+# Logged in with: claude login
+
+# Fallback 1: AWS Bedrock (pay-as-you-go)
+export AWS_PROFILE="my-profile"
+export AWS_REGION="us-west-2"
+
+# Fallback 2: Ollama (free local)
+# Just install and run: ollama serve
+```
+
+### 2. Use Tier Flags for Cost Control
+
+```bash
+# Expensive: Opus for complex tasks
+ai --aws --opus complex-refactor.md
+
+# Balanced: Sonnet (default) for most work
+ai --aws task.md
+
+# Cheap: Haiku for simple edits
+ai --aws --haiku simple-fix.md
+```
+
+### 3. Set Defaults for Common Workflows
+
+```bash
+# Set your most-used provider as default
+ai --aws --set-default
+
+# Clear when switching projects
+ai --clear-default
+```
+
+### 4. Monitor Usage and Costs
+
+Keep an eye on your API usage:
+- AWS: CloudWatch metrics
+- Google: Cloud Console
+- Anthropic: Console dashboard
+- Vercel: AI Gateway dashboard
+
+### 5. Use Local for Development
+
+```bash
+# Development: Use free local models
+ai --ollama
+
+# Production: Switch to cloud for reliability
+ai --aws --resume
+```
+
+## Troubleshooting
+
+### Resume Not Working
+
+```bash
+# Check session history
+ls ~/.ai-runner/sessions/
+
+# Resume last session explicitly
+ai --resume
+
+# Resume specific session
+ai --resume --session 2024-03-03-15-30-00
+```
+
+### Provider Not Responding
+
+```bash
+# Test provider configuration
+ai --aws --test
+
+# Switch to known-good provider
+ai --apikey --resume
+```
+
+### Model Not Available
+
+```bash
+# For local providers, pull/download first
+ollama pull qwen3-coder
+lms load openai/gpt-oss-20b
+
+# Then retry
+ai --ollama --model qwen3-coder --resume
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Provider Overview" icon="table" href="/providers/overview">
+    Learn about the provider system
+  </Card>
+  <Card title="Local Providers" icon="laptop" href="/providers/local">
+    Set up free local models
+  </Card>
+  <Card title="Cloud Providers" icon="cloud" href="/providers/cloud">
+    Configure cloud APIs
+  </Card>
+</CardGroup>

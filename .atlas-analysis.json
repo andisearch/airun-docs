@@ -1,0 +1,144 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "Andi AIRun",
+  "projectDescription": "Run AI prompts like programs with executable markdown, Unix pipes, and cross-cloud provider switching",
+  "theme": "aspen",
+  "primaryColor": "#2563eb",
+  "lightColor": "#60a5fa",
+  "darkColor": "#1e40af",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/executable-markdown",
+              "concepts/unix-pipes",
+              "concepts/provider-switching"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/scripting",
+              "guides/automation",
+              "guides/variables",
+              "guides/live-output",
+              "guides/permissions"
+            ]
+          },
+          {
+            "group": "Providers",
+            "pages": [
+              "providers/overview",
+              "providers/local",
+              "providers/cloud",
+              "providers/switching"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/agent-teams",
+              "advanced/composable-scripts",
+              "advanced/configuration"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI Reference",
+        "groups": [
+          {
+            "group": "Commands",
+            "pages": [
+              "cli/ai",
+              "cli/ai-status",
+              "cli/ai-sessions",
+              "cli/ai-update"
+            ]
+          },
+          {
+            "group": "Flags",
+            "pages": [
+              "cli/provider-flags",
+              "cli/model-flags",
+              "cli/permission-flags",
+              "cli/output-flags"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Examples",
+        "groups": [
+          {
+            "group": "Script Examples",
+            "pages": [
+              "examples/hello-world",
+              "examples/code-analysis",
+              "examples/test-automation",
+              "examples/live-streaming",
+              "examples/stdin-processing"
+            ]
+          },
+          {
+            "group": "Use Cases",
+            "pages": [
+              "examples/ci-cd",
+              "examples/code-review",
+              "examples/data-processing"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Executable markdown with shebang support",
+    "Unix pipe support for stdin/stdout",
+    "Cross-cloud provider switching (AWS, Vertex, Azure, Vercel)",
+    "Local model support (Ollama, LM Studio)",
+    "Model tier selection (Opus, Sonnet, Haiku)",
+    "Session continuity with --resume flag",
+    "Script variables with YAML front-matter",
+    "Live output streaming for real-time feedback",
+    "Agent Teams for collaborative AI workflows",
+    "Permission modes for secure automation"
+  ],
+  "publicApiSurface": [
+    "ai [OPTIONS] [file.md]",
+    "ai --aws",
+    "ai --vertex",
+    "ai --azure",
+    "ai --vercel",
+    "ai --apikey",
+    "ai --pro",
+    "ai --ollama",
+    "ai --lmstudio",
+    "ai --opus",
+    "ai --sonnet",
+    "ai --haiku",
+    "ai --model <id>",
+    "ai --resume",
+    "ai --live",
+    "ai --skip",
+    "ai --bypass",
+    "ai --team",
+    "ai --set-default",
+    "ai --clear-default",
+    "ai update",
+    "ai-status",
+    "ai-sessions"
+  ]
+}

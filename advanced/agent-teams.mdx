@@ -1,0 +1,221 @@
+---
+title: Agent Teams
+description: Run multiple Claude instances collaborating on shared tasks with internal coordination
+---
+
+## What Are Agent Teams?
+
+Agent Teams enable multiple Claude instances to collaborate on shared tasks, with one session acting as the lead coordinator and spawning teammates to work in parallel. This is an **experimental feature** built into Claude Code that AI Runner exposes through the `--team` flag.
+
+**Key characteristics:**
+- One lead agent coordinates the work
+- Teammates are spawned as needed for parallel execution
+- Coordination uses Claude Code's internal task list and mailbox (not provider-specific)
+- Works with **all providers** — AWS, Vertex, Ollama, Vercel, etc.
+- **Interactive mode only** — not supported in shebang/piped script modes
+
+## Quick Start
+
+```bash
+# Enable agent teams with default provider
+ai --team
+
+# Combine with any provider
+ai --aws --opus --team
+ai --ollama --team
+ai --vercel --model xai/grok-code-fast-1 --team
+
+# Control teammate display mode
+ai --team --teammate-mode tmux   # Split panes via tmux
+ai --team --teammate-mode auto   # Automatic display (default)
+```
+
+## How It Works
+
+Agent Teams leverage Claude Code's internal coordination system:
+
+1. **Lead Agent**: The main session you interact with
+2. **Task List**: Shared work queue managed by the lead
+3. **Mailbox**: Inter-agent communication channel
+4. **Teammates**: Spawned workers that execute tasks and report back
+
+The lead agent breaks down complex tasks, delegates work to teammates, and synthesizes results. All coordination happens through Claude Code's internal mechanisms — there's no provider-specific orchestration.
+
+```bash
+# Example: Complex multi-file refactoring
+ai --aws --opus --team
+# > "Refactor the authentication system across all modules"
+#
+# Lead: I'll coordinate this refactoring across 5 modules
+# Teammate 1: Working on auth/login.ts
+# Teammate 2: Working on auth/session.ts
+# Teammate 3: Working on middleware/auth.ts
+# Lead: Reviewing changes and ensuring consistency...
+```
+
+## Flags and Options
+
+### `--team` Flag
+
+**AI Runner flag** that enables agent teams by setting the `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` environment variable.
+
+```bash
+ai --team                    # Enable teams
+ai --aws --opus --team       # Teams with specific provider
+```
+
+### `--teammate-mode` Flag
+
+**Claude Code native flag** (passed through by AI Runner) that controls how teammates are displayed:
+
+| Mode | Behavior |
+|------|----------|
+| `auto` | Automatic display (default) — Claude Code chooses based on environment |
+| `in-process` | Teammates share the same terminal output |
+| `tmux` | Each teammate gets its own tmux split pane |
+
+```bash
+ai --team --teammate-mode tmux        # Split panes
+ai --team --teammate-mode in-process  # Shared terminal
+```
+
+**Note:** `--teammate-mode` without `--team` has no effect (teammates aren't spawned).
+
+## Limitations
+
+### Interactive Mode Only
+
+Agent teams require an interactive session. Scripts (shebang/piped) run in single-agent mode:
+
+```bash
+# ✅ Works — interactive session
+ai --team
+
+# ❌ Ignored — script mode
+ai --team task.md           # --team ignored, warning shown
+./task.md                   # --team in shebang ignored
+```
+
+If you specify `--team` in a script, AI Runner shows a warning and disables it:
+
+```
+[AI Runner] Warning: Agent teams (--team) requires interactive mode. Ignoring flag.
+```
+
+### Token Scaling
+
+Each teammate consumes tokens independently. Token usage scales roughly linearly with the number of active teammates:
+
+- **1 teammate active**: ~1× normal token usage
+- **3 teammates active**: ~3× normal token usage
+- **5 teammates active**: ~5× normal token usage
+
+The lead agent coordinates work to minimize redundant operations, but parallel execution inherently uses more tokens than sequential work.
+
+**Cost implications:**
+- More teammates = faster completion but higher cost
+- The lead agent spawns teammates as needed (not all at once)
+- Simple tasks may not spawn teammates at all
+
+### Provider Compatibility
+
+Agent teams work with **all providers** because coordination is internal to Claude Code:
+
+```bash
+# All supported
+ai --aws --team
+ai --vertex --team
+ai --apikey --team
+ai --ollama --team
+ai --lmstudio --team
+ai --vercel --team
+ai --azure --team
+```
+
+The provider's API sees individual requests from each agent (lead + teammates). From the provider's perspective, it's just multiple concurrent sessions.
+
+## Use Cases
+
+### Parallel File Operations
+
+Refactoring, migration, or analysis across multiple files:
+
+```bash
+ai --team
+# > "Update all React components to use TypeScript strict mode"
+```
+
+Teammates work on different files simultaneously while the lead ensures consistency.
+
+### Complex Multi-Step Tasks
+
+Tasks with independent subtasks:
+
+```bash
+ai --aws --opus --team
+# > "Set up CI/CD: configure GitHub Actions, add Docker support, 
+#    write deployment docs, and set up monitoring"
+```
+
+Each teammate handles one aspect while the lead coordinates.
+
+### Large Codebase Analysis
+
+Investigating patterns across many files:
+
+```bash
+ai --team
+# > "Find all database queries and check for SQL injection vulnerabilities"
+```
+
+Teammates scan different modules in parallel.
+
+## Saving Team Mode as Default
+
+Use `--set-default` to persist your team configuration:
+
+```bash
+# Save AWS + Opus + Teams as default
+ai --aws --opus --team --set-default
+
+# Now 'ai' uses teams by default
+ai    # Launches with --aws --opus --team
+
+# Clear saved defaults
+ai --clear-default
+```
+
+## Troubleshooting
+
+### Teams Not Spawning
+
+If you enable `--team` but don't see teammates:
+
+1. **Check mode**: Teams only work in interactive sessions, not scripts
+2. **Task complexity**: Simple tasks may not need teammates
+3. **Environment**: Run `ai-status` to verify `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is set
+
+### Tmux Mode Not Working
+
+If `--teammate-mode tmux` doesn't split panes:
+
+1. **Tmux installed**: `which tmux` should return a path
+2. **Inside tmux**: The flag only works when already in a tmux session
+3. **Fallback**: Claude Code falls back to `in-process` if tmux unavailable
+
+### High Token Usage
+
+If you're seeing unexpectedly high token consumption:
+
+1. **Multiple teammates**: Check how many teammates are active (scales linearly)
+2. **Use smaller model for teammates**: Override the small/fast model in `~/.ai-runner/secrets.sh`:
+   ```bash
+   export CLAUDE_SMALL_FAST_MODEL_AWS="us.anthropic.claude-haiku-4-5-20251001-v1:0"
+   ```
+3. **Disable teams**: Remove `--team` if parallel execution isn't needed
+
+## Related Documentation
+
+- [Claude Code Agent Teams](https://code.claude.com/docs/en/agent-teams) — Official Claude Code documentation
+- [Configuration](/advanced/configuration) — Model overrides and dual model system
+- [AI Command](/cli/ai) — Core interactive mode features

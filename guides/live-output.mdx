@@ -1,0 +1,394 @@
+---
+title: 'Live Output & Streaming'
+description: 'Stream AI progress in real-time for long-running scripts and browser automation'
+---
+
+## Overview
+
+By default, AI scripts wait for the full response before printing anything. The `--live` flag enables real-time streaming, showing progress as the AI works. This is essential for long-running scripts where you want immediate feedback.
+
+## How `--live` Works
+
+### Turn-Level Streaming
+
+`--live` streams at **turn granularity** — each time Claude writes a text response between tool calls, that text appears immediately.
+
+This means your prompt needs to tell Claude to narrate its progress, otherwise it may silently use tools and only output text at the end.
+
+### Example: With Progress Narration
+
+```markdown explore.md
+#!/usr/bin/env -S ai --skip --live
+Explore this repository. Print a brief summary after examining each
+directory. Finally, generate a concise report in markdown format.
+```
+
+Run it:
+```bash
+./explore.md
+```
+
+Output streams incrementally:
+```
+[AI Runner] Using: Claude Code + Claude Pro
+[AI Runner] Model: (system default)
+
+Let me explore the repository structure...
+
+I've examined the src/ directory. It contains the core application logic
+with modules for authentication, data processing, and API handlers.
+
+Now checking the test/ directory...
+
+Tests are organized by feature with good coverage. Found 127 test files.
+
+Generating final report:
+
+# Repository Summary
+...
+```
+
+### Example: Without Progress Narration
+
+```markdown explore-silent.md
+#!/usr/bin/env -S ai --skip --live
+Explore this repository and write a summary.
+```
+
+Run it:
+```bash
+./explore-silent.md
+```
+
+No intermediate output (Claude works silently):
+```
+[AI Runner] Using: Claude Code + Claude Pro
+[AI Runner] Model: (system default)
+
+[...long pause...]
+
+# Repository Summary
+...
+```
+
+Both produce the same final result, but only the first streams progress. The key is phrases like:
+- **"print as you go"**
+- **"step by step"**
+- **"describe what you find"**
+- **"narrate your progress"**
+- **"summarize after each step"**
+
+These prompt Claude to write text between tool calls, giving `--live` something to stream.
+
+## Output Redirection
+
+When stdout is redirected to a file, `--live` automatically separates narration from content:
+
+```bash
+./live-report.md > report.md
+```
+
+**Console (stderr):**
+```
+[AI Runner] Using: Claude Code + Claude Pro
+[AI Runner] Model: (system default)
+
+I'll explore the repository structure and key files...
+Now let me look at the core scripts and provider structure.
+Here's my report:
+[AI Runner] Done (70 lines written)
+```
+
+**File (stdout):**
+```markdown
+# Repository Summary
+
+This repository contains...
+
+## Key Features
+...
+```
+
+### How It Works
+
+1. **Intermediate turns** (narration, progress) stream to stderr in real-time
+2. **The last turn** is split at the first content marker:
+   - YAML frontmatter `---`
+   - Markdown heading `#`
+3. **Preamble text** before the marker goes to stderr
+4. **Content** from the marker onward goes to the file (stdout)
+5. **Summary message** "Done (N lines written)" appears on stderr when complete
+
+This means you can watch progress on the console while capturing clean output in a file.
+
+### Example: Generate Documentation
+
+```markdown generate-docs.md
+#!/usr/bin/env -S ai --sonnet --skip --live
+Explore this repository and write a short summary of what it does,
+its key features, and how to get started. Print your findings as you go.
+Finally, generate a concise report in markdown format.
+```
+
+Run it:
+```bash
+./generate-docs.md > ARCHITECTURE.md
+```
+
+You see progress on console:
+```
+Examining the source structure...
+Found 15 modules in src/
+Analyzing dependencies...
+Generating final report:
+[AI Runner] Done (82 lines written)
+```
+
+While `ARCHITECTURE.md` contains only the clean report.
+
+## When to Use `--live`
+
+Use `--live` for:
+
+<Check>
+- **Long-running scripts** (>30 seconds)
+- **Browser automation** with Chrome
+- **Multi-step workflows** where you want to see each step
+- **CI/CD jobs** where you need progress visibility
+- **Debugging** to see what the AI is doing in real-time
+</Check>
+
+Skip `--live` for:
+
+<Warning>
+- **Quick read-only queries** (under 10 seconds)
+- **Piped output** where you only care about the final result
+- **Silent automation** where you want minimal output
+</Warning>
+
+## Piped Content with Live Streaming
+
+You can combine stdin piping with `--live`:
+
+```bash
+cat data.json | ai --live --skip analyze.md
+```
+
+The AI reads from stdin and streams progress to stdout:
+```
+[AI Runner] Using: Claude Code + Claude Pro
+[AI Runner] Model: (system default)
+
+Analyzing the JSON data...
+Found 1,247 records spanning 2020-2024.
+Detected 3 outliers in the revenue column.
+
+Key findings:
+- Average revenue increased 23% year-over-year
+- Q4 2023 shows unusual spike (investigate further)
+...
+```
+
+## Browser Automation with Chrome
+
+`--live` pairs perfectly with `--chrome` (a Claude Code flag) for browser automation where steps take time and you need real-time progress:
+
+```markdown test-login.md
+#!/usr/bin/env -S ai --skip --chrome --live
+Navigate to https://app.example.com and verify the login flow works.
+Describe each step as you go:
+1. Load the page
+2. Fill in credentials
+3. Click login
+4. Verify dashboard appears
+```
+
+Run it:
+```bash
+./test-login.md
+```
+
+Output streams in real-time:
+```
+[AI Runner] Using: Claude Code + Claude Pro
+[AI Runner] Model: (system default)
+
+Step 1: Loading https://app.example.com...
+Page loaded successfully. Login form is visible.
+
+Step 2: Filling in test credentials...
+Entered username and password.
+
+Step 3: Clicking login button...
+Submitting form...
+Redirecting...
+
+Step 4: Verifying dashboard...
+Dashboard loaded. User profile visible in header.
+
+Login flow verified successfully.
+```
+
+Without `--live`, you'd see nothing until the entire test completes (which could be minutes).
+
+## Using `--quiet` to Suppress Live Output
+
+Override `--live` with `--quiet` when you want silent operation:
+
+```bash
+ai --quiet ./browser-test.md > report.md
+```
+
+This is useful in CI/CD where you only want the final result:
+- No progress narration
+- No [AI Runner] status messages
+- Only the final output content
+
+## Real-World Examples
+
+### Example 1: Repository Exploration
+
+```markdown explore-repo.md
+#!/usr/bin/env -S ai --sonnet --skip --live
+Explore this repository and write a short summary of what it does,
+its key features, and how to get started. Print your findings as you go.
+Finally, generate a concise report in markdown format.
+```
+
+Usage:
+```bash
+./explore-repo.md > README.md
+```
+
+### Example 2: Test Suite Runner
+
+```markdown run-tests.md
+#!/usr/bin/env -S ai --sonnet --skip --live
+Run the test suite for this project. After each test file completes,
+report the results. Finally, summarize: how many passed/failed.
+```
+
+Usage:
+```bash
+./run-tests.md
+```
+
+### Example 3: Data Analysis Pipeline
+
+```markdown analyze-pipeline.md
+#!/usr/bin/env -S ai --haiku --skip --live
+Process the data through these steps:
+1. Load and validate the input
+2. Clean and normalize values
+3. Calculate summary statistics
+4. Identify outliers
+
+Print progress after each step. Output final results in JSON format.
+```
+
+Usage:
+```bash
+cat raw-data.csv | ./analyze-pipeline.md > results.json
+```
+
+### Example 4: Security Scan
+
+```markdown security-scan.md
+#!/usr/bin/env -S ai --opus --skip --live
+Scan this codebase for security vulnerabilities. Check each directory
+and report findings as you go. Focus on:
+- SQL injection risks
+- XSS vulnerabilities
+- Insecure dependencies
+
+Finally, generate a security report with severity levels.
+```
+
+Usage:
+```bash
+./security-scan.md > security-report.md
+```
+
+## Requirements
+
+<Note>
+`--live` requires `jq` to be installed:
+
+```bash
+# macOS
+brew install jq
+
+# Ubuntu/Debian
+sudo apt-get install jq
+
+# CentOS/RHEL
+sudo yum install jq
+```
+</Note>
+
+## Troubleshooting
+
+### No Intermediate Output
+
+**Problem:** `--live` flag is set but nothing streams until the end
+
+**Solution:** Add progress narration to your prompt:
+```markdown
+# Before
+Explore the repository and write a summary.
+
+# After
+Explore the repository. Print findings after examining each directory.
+Finally, write a summary.
+```
+
+### Output Goes to Wrong Stream
+
+**Problem:** Progress text ends up in the output file
+
+**Solution:** Ensure your final output starts with a content marker (`#` heading or `---` frontmatter). The system splits at the first marker.
+
+### `jq` Not Found Error
+
+**Problem:** `[AI Runner] Error: jq not found`
+
+**Solution:** Install `jq`:
+```bash
+brew install jq  # macOS
+sudo apt-get install jq  # Linux
+```
+
+## Best Practices
+
+<Check>
+**Do:**
+- Add `--live` to any script that takes >30 seconds
+- Prompt the AI to narrate progress ("print as you go")
+- Start final output with `#` heading for clean file redirection
+- Use `--live` with `--chrome` for browser automation
+- Override with `--quiet` in CI when you want silent operation
+</Check>
+
+<Warning>
+**Don't:**
+- Rely on `--live` for scripts that work silently (add narration prompts)
+- Forget to install `jq` before using `--live`
+- Mix `--live` narration with structured output (use separate turns)
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="CI/CD Automation" icon="gears" href="/guides/automation">
+    Use live output in continuous integration pipelines
+  </Card>
+  <Card title="Writing Scripts" icon="scroll" href="/guides/scripting">
+    Learn script basics and common patterns
+  </Card>
+  <Card title="Script Variables" icon="dollar-sign" href="/guides/variables">
+    Make scripts reusable with CLI overrides
+  </Card>
+  <Card title="Permissions" icon="shield-check" href="/guides/permissions">
+    Control what scripts can do
+  </Card>
+</CardGroup>

@@ -1,0 +1,349 @@
+---
+title: Model Flags
+description: Select model tiers or specific model IDs
+---
+
+Model flags let you choose which AI model to use. You can select by tier (Opus, Sonnet, Haiku) or specify an exact model ID.
+
+## Tier Flags
+
+### High Tier (Opus)
+
+<ParamField path="--opus" type="flag">
+  **Highest-tier model** - Most capable, best for complex reasoning
+  
+  ```bash
+  ai --opus task.md
+  ai --aws --opus
+  ai --ollama --opus      # Not applicable to Ollama
+  ```
+  
+  **Equivalent:** `--high`
+  
+  **Default model:** `claude-opus-4-6-v1:0`
+  
+  **Use for:**
+  - Complex architectural decisions
+  - Difficult refactoring
+  - Security analysis
+  - High-stakes code generation
+</ParamField>
+
+<ParamField path="--high" type="flag">
+  Alias for `--opus`
+  
+  ```bash
+  ai --high task.md
+  ```
+</ParamField>
+
+### Mid Tier (Sonnet)
+
+<ParamField path="--sonnet" type="flag">
+  **Mid-tier model** - Balanced capability and speed (default)
+  
+  ```bash
+  ai --sonnet task.md
+  ai --aws --sonnet
+  ```
+  
+  **Equivalent:** `--mid`
+  
+  **Default model:** `claude-sonnet-4-6-v1:0`
+  
+  **Use for:**
+  - Most coding tasks
+  - General development
+  - Documentation
+  - Code review
+  
+  **Note:** This is the default tier when no model flag is specified.
+</ParamField>
+
+<ParamField path="--mid" type="flag">
+  Alias for `--sonnet`
+  
+  ```bash
+  ai --mid task.md
+  ```
+</ParamField>
+
+### Low Tier (Haiku)
+
+<ParamField path="--haiku" type="flag">
+  **Lowest-tier model** - Fastest and most cost-effective
+  
+  ```bash
+  ai --haiku task.md
+  ai --aws --haiku
+  ai --ollama --haiku     # Not applicable to Ollama
+  ```
+  
+  **Equivalent:** `--low`
+  
+  **Default model:** `claude-haiku-4-5-20251001-v1:0`
+  
+  **Use for:**
+  - Quick tests
+  - Simple tasks
+  - Cost-sensitive workloads
+  - High-volume automation
+</ParamField>
+
+<ParamField path="--low" type="flag">
+  Alias for `--haiku`
+  
+  ```bash
+  ai --low task.md
+  ```
+</ParamField>
+
+## Custom Model Selection
+
+<ParamField path="--model" type="flag">
+  **Specify exact model ID** - Use any model supported by your provider
+  
+  ```bash
+  ai --model claude-opus-4-6
+  ai --aws --model us.anthropic.claude-opus-4-6-v1:0
+  ai --ollama --model qwen3-coder
+  ai --vercel --model openai/gpt-5.2-codex
+  ```
+  
+  **Format depends on provider:**
+  - **AWS Bedrock:** `us.anthropic.claude-opus-4-6-v1:0`
+  - **Vertex AI:** `claude-opus-4-6@20250514`
+  - **Anthropic API:** `claude-opus-4-6`
+  - **Ollama:** Model name from `ollama list`
+  - **Vercel:** `provider/model-name` (e.g., `openai/gpt-4`)
+  
+  **Precedence:** `--model` overrides tier flags (`--opus`, `--sonnet`, `--haiku`)
+</ParamField>
+
+## Model Defaults Per Provider
+
+### Claude Subscription (Pro/Max)
+
+```bash
+ai --pro                 # Uses your subscription's latest model
+```
+
+Claude Pro/Max doesn't support tier selection - it always uses the latest available model from your subscription.
+
+### API Providers (AWS, Vertex, Anthropic, Azure)
+
+| Tier | Default Model |
+|------|---------------|
+| Opus (`--opus`, `--high`) | `claude-opus-4-6-v1:0` |
+| Sonnet (`--sonnet`, `--mid`) | `claude-sonnet-4-6-v1:0` |
+| Haiku (`--haiku`, `--low`) | `claude-haiku-4-5-20251001-v1:0` |
+
+**Default tier:** Sonnet (mid)
+
+```bash
+ai --aws                 # Uses Sonnet
+ai --aws --opus          # Uses Opus
+ai --aws --haiku         # Uses Haiku
+```
+
+### Local Providers (Ollama, LM Studio)
+
+```bash
+ai --ollama --model qwen3-coder          # Specify model name
+ai --lmstudio --model mlx-qwen-32b       # Specify model name
+```
+
+Local providers don't have default models - you must specify with `--model` or configure a default in `~/.ai-runner/secrets.sh`.
+
+### Vercel AI Gateway
+
+```bash
+ai --vercel --model openai/gpt-5.2-codex        # OpenAI
+ai --vercel --model anthropic/claude-opus-4-6   # Anthropic
+ai --vercel --model google/gemini-exp-2506      # Google
+```
+
+Vercel supports 100+ models. Use `provider/model-name` format. See [Vercel AI Gateway docs](https://vercel.com/ai-gateway) for available models.
+
+## Configuration
+
+### View Default Models
+
+```bash
+ai-status    # Shows default model IDs for each tier
+```
+
+### Override Model Defaults
+
+Edit `~/.ai-runner/secrets.sh`:
+
+```bash
+# Override AWS Sonnet model
+export CLAUDE_MODEL_SONNET_AWS="global.anthropic.claude-sonnet-4-6"
+
+# Override small/fast model (for background operations)
+export CLAUDE_SMALL_FAST_MODEL_AWS="us.anthropic.claude-haiku-4-5-20251001-v1:0"
+
+# Override Vertex Opus model
+export CLAUDE_MODEL_OPUS_VERTEX="claude-opus-4-6@20250514"
+```
+
+See `~/.ai-runner/models.sh` for all available override variables.
+
+## Dual Model Configuration
+
+Claude Code uses two models:
+
+1. **Primary model** (`ANTHROPIC_MODEL`) - Interactive work, selected by tier flags
+2. **Small/fast model** (`ANTHROPIC_SMALL_FAST_MODEL`) - Background operations (defaults to Haiku)
+
+When you run:
+
+```bash
+ai --aws --opus
+```
+
+- **Primary:** Opus (`claude-opus-4-6-v1:0`)
+- **Background:** Haiku (`claude-haiku-4-5-20251001-v1:0`)
+
+Both models show in `ai-status` output.
+
+## Examples
+
+### Tier Selection
+
+```bash
+# Most capable (Opus)
+ai --aws --opus complex-refactor.md
+
+# Balanced (Sonnet, default)
+ai --aws task.md
+ai --aws --sonnet task.md     # Explicit
+
+# Fastest/cheapest (Haiku)
+ai --aws --haiku quick-test.md
+```
+
+### Custom Models
+
+```bash
+# Specific AWS Bedrock model
+ai --aws --model us.anthropic.claude-opus-4-6-v1:0
+
+# Ollama local model
+ai --ollama --model qwen3-coder
+
+# Ollama cloud model (no GPU needed)
+ai --ollama --model minimax-m2.5:cloud
+
+# Vercel with OpenAI
+ai --vercel --model openai/gpt-5.2-codex
+
+# Vercel with xAI Grok
+ai --vercel --model xai/grok-2
+```
+
+### Shebang Scripts
+
+```markdown
+#!/usr/bin/env -S ai --aws --opus
+Complex task requiring the most capable model.
+```
+
+```markdown
+#!/usr/bin/env -S ai --ollama --model qwen3-coder
+Local execution with specific model.
+```
+
+### Resume with Different Model
+
+```bash
+# Start with Sonnet
+ai --aws --sonnet
+
+# Resume with Opus for complex reasoning
+ai --aws --opus --resume
+
+# Resume with Haiku for speed
+ai --aws --haiku --resume
+```
+
+### Cost Optimization
+
+```bash
+# Use Haiku for bulk operations
+for file in *.md; do
+  ai --aws --haiku --skip "$file" >> results.txt
+done
+
+# Use Opus only for critical review
+ai --aws --opus --skip final-review.md
+```
+
+## Model Recommendations
+
+| Task Type | Recommended Tier | Reason |
+|-----------|------------------|--------|
+| Complex refactoring | Opus | Needs deep understanding |
+| Architectural design | Opus | High-stakes decisions |
+| Security analysis | Opus | Accuracy critical |
+| General coding | Sonnet | Balanced performance |
+| Documentation | Sonnet | Good quality/speed ratio |
+| Code review | Sonnet | Sufficient capability |
+| Quick tests | Haiku | Speed matters |
+| Bulk automation | Haiku | Cost-effective |
+| Simple tasks | Haiku | Overhead not needed |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Model not found error">
+    Model IDs are provider-specific. Check your provider's available models:
+    
+    ```bash
+    # AWS Bedrock
+    aws bedrock list-foundation-models --region us-west-2
+    
+    # Ollama
+    ollama list
+    
+    # Vertex AI
+    gcloud ai models list --region=us-central1
+    ```
+    
+    See provider documentation for correct model ID format.
+  </Accordion>
+  
+  <Accordion title="Wrong model being used">
+    Check for overrides in `~/.ai-runner/secrets.sh`:
+    
+    ```bash
+    grep CLAUDE_MODEL ~/.ai-runner/secrets.sh
+    ```
+    
+    Verify active model in session:
+    
+    ```bash
+    ai-status
+    ```
+  </Accordion>
+  
+  <Accordion title="Tier flags don't work with Ollama">
+    Local providers (Ollama, LM Studio) don't have tier flags. Use `--model` instead:
+    
+    ```bash
+    ai --ollama --model qwen3-coder
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Provider Flags" icon="cloud" href="./provider-flags">
+    Switch between cloud providers
+  </Card>
+  <Card title="Provider Model Lists" icon="list" href="/providers">
+    Available models per provider
+  </Card>
+</CardGroup>

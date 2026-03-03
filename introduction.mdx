@@ -1,0 +1,167 @@
+---
+title: Introduction
+description: Run AI prompts like programs with executable markdown, Unix pipes, and cross-cloud provider switching
+---
+
+# Andi AIRun
+
+Run AI prompts like programs. Executable markdown with shebang, Unix pipes, and output redirection. Extends Claude Code with cross-cloud provider switching and any-model support — free local or 100+ cloud models.
+
+```bash
+# Run Claude Code interactively: any model or provider
+ai                                        # Regular Claude subscription (Pro, Max)
+ai --aws --opus --team --resume           # Resume chats on AWS w/ Opus 4.6 + Agent Teams
+ai --ollama --bypass --model qwen3-coder  # Ollama local model with bypassPermissions set
+ai --vercel --model openai/gpt-5.2-codex  # Vercel AI Gateway with 100+ models
+
+# Run prompts like programs
+ai --azure --haiku script.md
+
+# Script automation
+cat data.json | ./analyze.md > results.txt
+```
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get started in 5 minutes with your first executable AI script
+  </Card>
+  <Card title="Installation" icon="download" href="/installation">
+    Detailed installation guide for all platforms
+  </Card>
+  <Card title="Executable Markdown" icon="file-code" href="#executable-markdown">
+    Create markdown files that run as AI programs
+  </Card>
+  <Card title="Provider Switching" icon="cloud" href="#providers">
+    Switch between AWS, Azure, Vertex, Ollama, and more
+  </Card>
+</CardGroup>
+
+## Overview
+
+Switch between your [Claude Code](https://claude.ai/code) subscription and different clouds + models: AWS Bedrock, Google Vertex, Azure, Vercel + Anthropic API. Supports free local models ([Ollama](https://ollama.com/), [LM Studio](https://lmstudio.ai/)) and 100+ alternate cloud models via [Vercel AI Gateway](https://vercel.com/ai-gateway) or Ollama Cloud. Swap and resume conversations mid-task to avoid rate limits and keep working.
+
+## Key Features
+
+<AccordionGroup>
+  <Accordion title="Executable Markdown" icon="terminal">
+    Create markdown files with `#!/usr/bin/env ai` shebang for script automation. Run them directly like any executable program.
+    
+    ```markdown
+    #!/usr/bin/env ai
+    Analyze my codebase and summarize the architecture.
+    ```
+    
+    Make it executable and run:
+    ```bash
+    chmod +x task.md
+    ./task.md
+    ```
+  </Accordion>
+
+  <Accordion title="Unix Pipe Support" icon="arrows-turn-right">
+    Pipe data into scripts, redirect output, chain in pipelines — standard Unix semantics for AI automation.
+    
+    ```bash
+    cat data.json | ./analyze.md > results.txt    # Pipe in, redirect out
+    git log -10 | ./summarize.md                  # Feed git history to AI
+    ./generate.md | ./review.md > final.txt       # Chain scripts together
+    ```
+  </Accordion>
+
+  <Accordion title="Cross-Cloud Provider Switching" icon="cloud">
+    Use Claude on AWS, Vertex, Azure, Anthropic API + switch mid-conversation to bypass rate limits. Also supports local models and Vercel AI Gateway.
+    
+    ```bash
+    ai --aws                          # AWS Bedrock
+    ai --vertex                       # Google Vertex AI
+    ai --ollama                       # Ollama (local, free)
+    ai --vercel                       # Vercel AI Gateway
+    ```
+  </Accordion>
+
+  <Accordion title="Model Tiers" icon="layer-group">
+    Simple tier selection across all providers: `--opus`/`--high`, `--sonnet`/`--mid`, `--haiku`/`--low`
+    
+    ```bash
+    ai --opus task.md                 # Opus 4.6 (most capable)
+    ai --sonnet task.md               # Sonnet 4.6
+    ai --haiku task.md                # Haiku 4.5 (fastest)
+    ```
+  </Accordion>
+
+  <Accordion title="Session Continuity" icon="rotate">
+    `--resume` picks up your previous chats with any model/provider. Switch providers mid-conversation when you hit rate limits.
+    
+    ```bash
+    # Hit rate limit on Claude Pro
+    claude
+    # "Rate limit exceeded. Try again in 4 hours."
+    
+    # Continue immediately with AWS
+    ai --aws --resume
+    ```
+  </Accordion>
+
+  <Accordion title="Script Variables" icon="brackets-curly">
+    Declare variables with defaults in YAML front-matter. Users override them from the CLI without editing the script.
+    
+    ```markdown
+    #!/usr/bin/env -S ai --haiku
+    ---
+    vars:
+      topic: "machine learning"
+      style: casual
+      length: short
+    ---
+    Write a {{length}} summary of {{topic}} in a {{style}} tone.
+    ```
+    
+    ```bash
+    ./summarize.md                          # uses defaults
+    ./summarize.md --topic "AI safety"      # overrides one variable
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## What it Does
+
+- **Executable markdown** with `#!/usr/bin/env ai` shebang for script automation
+- **Unix pipe support**: pipe data into scripts, redirect output, chain in pipelines
+- **Cross-cloud provider switching**: use Claude on AWS, Vertex, Azure, Anthropic API + switch mid-conversation to bypass rate limits. Also supports local models and Vercel AI Gateway
+- **Model tiers**: `--opus`/`--high`, `--sonnet`/`--mid`, `--haiku`/`--low`
+- **Session continuity**: `--resume` picks up your previous chats with any model/provider
+- **Non-destructive**: plain `claude` always works untouched as before
+
+<Note>
+  From [Andi AI Search](https://andisearch.com). Star the [GitHub repo](https://github.com/andisearch/airun) if it helps!
+</Note>
+
+## Supported Platforms
+
+- macOS 13.0+
+- Linux (Ubuntu 20.04+, Debian 10+)
+- Windows 10+ via WSL
+
+## Providers
+
+| Provider | Flag | Type | Notes |
+|----------|------|------|-------|
+| Ollama | `--ollama` / `--ol` | Local | Free, no API costs, cloud option |
+| LM Studio | `--lmstudio` / `--lm` | Local | MLX models (fast on Apple Silicon) |
+| AWS Bedrock | `--aws` | Cloud | Requires AWS credentials |
+| Google Vertex AI | `--vertex` | Cloud | Requires GCP project |
+| Anthropic API | `--apikey` | Cloud | Direct API access |
+| Microsoft Azure | `--azure` | Cloud | Azure Foundry |
+| Vercel AI Gateway | `--vercel` | Cloud | Any model: OpenAI, xAI, Google, Meta, more |
+| Claude Pro | `--pro` | Subscription | Default if logged in |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Get Started" icon="play" href="/quickstart">
+    Follow the quickstart guide to run your first executable AI script
+  </Card>
+  <Card title="Install" icon="download" href="/installation">
+    Complete installation instructions and configuration
+  </Card>
+</CardGroup>

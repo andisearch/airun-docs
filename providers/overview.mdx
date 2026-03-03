@@ -1,0 +1,181 @@
+---
+title: Provider Overview
+description: Understanding AI providers in Andi AIRun
+---
+
+Andi AIRun supports multiple AI providers, allowing you to choose between local models (free, private) and cloud APIs (powerful, scalable).
+
+## Quick Reference
+
+| Flag | Provider | Type | Notes |
+|------|----------|------|-------|
+| `--ollama` / `--ol` | Ollama | Local | Free, no API costs, cloud option |
+| `--lmstudio` / `--lm` | LM Studio | Local | MLX models (fast on Apple Silicon) |
+| `--aws` | AWS Bedrock | Cloud | Requires AWS credentials |
+| `--vertex` | Google Vertex AI | Cloud | Requires GCP project |
+| `--apikey` | Anthropic API | Cloud | Direct API access |
+| `--azure` | Microsoft Azure | Cloud | Azure Foundry |
+| `--vercel` | Vercel AI Gateway | Cloud | Any model: Anthropic, OpenAI, xAI, Google, Meta, more |
+| `--pro` | Claude Pro | Subscription | Default if logged in |
+
+## How Configuration Works
+
+All provider credentials are stored in **one file**: `~/.ai-runner/secrets.sh`
+
+### Initial Setup
+
+This file is created automatically by `./setup.sh` from the `secrets.example.sh` template:
+
+```bash
+nano ~/.ai-runner/secrets.sh
+```
+
+Andi AIRun loads this file at startup. You don't need to set environment variables in your shell profile or `.bashrc` — just add them to `secrets.sh`, and then switch providers freely with `ai --aws`, `ai --vertex`, etc.
+
+<Tip>
+You only need to configure the providers you want to use. Configure multiple providers to switch between them when you hit rate limits or want to use different models.
+</Tip>
+
+### Session-Scoped Behavior
+
+All provider configurations are session-scoped:
+- Changes only affect the active terminal session
+- On exit, original settings automatically restore
+- Plain `claude` always runs in native state
+- Running `claude` in another terminal is unaffected
+
+This means you can safely run `ai --lmstudio` in one terminal while using `claude` normally in another.
+
+## Provider Detection and Defaults
+
+### Automatic Provider Selection
+
+If you don't specify a provider flag, Andi AIRun automatically detects and uses:
+
+1. **Claude Pro** (if logged in with `claude login`)
+2. **First configured provider** in secrets.sh
+
+### Setting a Default Provider
+
+You can set a default provider to avoid typing the flag every time:
+
+```bash
+ai --vercel --model xai/grok-code-fast-1 --set-default
+```
+
+Clear the default:
+
+```bash
+ai --clear-default
+```
+
+## Model Tier System
+
+Andi AIRun uses a three-tier model system to balance performance and cost:
+
+### Tier Levels
+
+| Tier | Aliases | Use Case | Claude Models |
+|------|---------|----------|---------------|
+| **High** | `--opus`, `--high` | Complex reasoning, large refactors | Claude Opus 4.6 |
+| **Mid** | `--sonnet`, `--mid` | General coding tasks (default) | Claude Sonnet 4.6 |
+| **Low** | `--haiku`, `--low` | Fast operations, small edits | Claude Haiku 4.5 |
+
+### Usage Examples
+
+```bash
+# Use high tier for complex reasoning
+ai --aws --opus task.md
+
+# Use mid tier (default)
+ai --aws task.md
+
+# Use low tier for speed and cost savings
+ai --vertex --haiku simple-fix.md
+```
+
+### Background Model
+
+Andi AIRun uses a "small/fast" model for background operations (like file searches, quick checks). By default, this is set to the **Low** tier model (Haiku).
+
+For local providers (Ollama, LM Studio), the background model defaults to the **same model** as the main tier to avoid costly model swapping.
+
+## Configuring Model Tiers
+
+You can customize model tiers per provider in `secrets.sh`:
+
+### Cloud Providers
+
+```bash
+# AWS Bedrock
+export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-6-v1"
+export CLAUDE_MODEL_SONNET_AWS="global.anthropic.claude-sonnet-4-6"
+export CLAUDE_MODEL_HAIKU_AWS="us.anthropic.claude-haiku-4-5-20251001-v1:0"
+
+# Google Vertex AI
+export CLAUDE_MODEL_OPUS_VERTEX="claude-opus-4-6"
+export CLAUDE_MODEL_SONNET_VERTEX="claude-sonnet-4-6"
+export CLAUDE_MODEL_HAIKU_VERTEX="claude-haiku-4-5@20251001"
+
+# Anthropic API
+export CLAUDE_MODEL_OPUS_ANTHROPIC="claude-opus-4-6"
+export CLAUDE_MODEL_SONNET_ANTHROPIC="claude-sonnet-4-6"
+export CLAUDE_MODEL_HAIKU_ANTHROPIC="claude-haiku-4-5"
+
+# Vercel AI Gateway
+export CLAUDE_MODEL_SONNET_VERCEL="xai/grok-code-fast-1"
+export CLAUDE_SMALL_FAST_MODEL_VERCEL="xai/grok-code-fast-1"
+```
+
+### Local Providers
+
+```bash
+# Ollama
+export OLLAMA_MODEL_HIGH="qwen3-coder"
+export OLLAMA_MODEL_MID="qwen3-coder"
+export OLLAMA_MODEL_LOW="qwen2.5-coder:7b"
+export OLLAMA_SMALL_FAST_MODEL="qwen3-coder"  # Same model to avoid swapping
+
+# LM Studio
+export LMSTUDIO_MODEL_HIGH="openai/gpt-oss-20b"
+export LMSTUDIO_MODEL_MID="openai/gpt-oss-20b"
+export LMSTUDIO_MODEL_LOW="ibm/granite-4-micro"
+export LMSTUDIO_SMALL_FAST_MODEL="openai/gpt-oss-20b"  # Same model
+```
+
+## Custom Models
+
+Override the tier system with a specific model:
+
+```bash
+# Use a specific model
+ai --vercel --model xai/grok-code-fast-1
+
+# Use a specific Ollama model
+ai --ollama --model glm-5:cloud
+
+# Use a specific AWS model
+ai --aws --model global.anthropic.claude-opus-4-6-v1
+```
+
+## Agent Teams
+
+All providers support agent teams (`ai --team`). Coordination uses Claude Code's internal task list and mailbox, not provider-specific features.
+
+<Card title="Learn More" icon="users" href="https://code.claude.com/docs/en/agent-teams">
+  Read the Claude Code Agent Teams documentation
+</Card>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Local Providers" icon="laptop" href="/providers/local">
+    Set up Ollama or LM Studio for free, private AI
+  </Card>
+  <Card title="Cloud Providers" icon="cloud" href="/providers/cloud">
+    Configure AWS, Google, Anthropic, Azure, or Vercel
+  </Card>
+  <Card title="Switching Providers" icon="arrow-right-arrow-left" href="/providers/switching">
+    Learn to switch providers to avoid rate limits
+  </Card>
+</CardGroup>

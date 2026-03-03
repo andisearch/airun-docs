@@ -1,0 +1,487 @@
+---
+title: 'Permission System'
+description: 'Control what AI scripts can do with granular permission modes and security best practices'
+---
+
+## Overview
+
+Andi AIRun's permission system controls what actions AI scripts can take. By default, scripts run in read-only mode. For scripts that need to write files, run commands, or take actions, you must explicitly grant permissions.
+
+## Permission Modes
+
+### Default Mode (Read-Only)
+
+No permission flags needed. The AI can:
+- Read files and directories
+- Analyze code
+- Search and grep
+- Output text
+
+The AI cannot:
+- Write or modify files
+- Run shell commands
+- Make network requests
+- Install packages
+
+**Example:**
+```markdown
+#!/usr/bin/env ai
+Analyze this codebase and summarize the architecture.
+```
+
+### Bypass Mode (`--bypass`)
+
+Shortcut for `--permission-mode bypassPermissions`. Grants full access through the permission mode system. Composable with other Claude Code settings.
+
+**When to use:** Standard automation where you need full access and may want to compose with other permission settings.
+
+**Example:**
+```markdown
+#!/usr/bin/env -S ai --bypass
+Run the test suite and fix any failing tests.
+```
+
+**What it enables:**
+- Full file system access (read, write, delete)
+- Shell command execution
+- Network requests
+- Package installation
+- All Claude Code tools
+
+### Skip Permissions (`--skip`)
+
+Shortcut for `--dangerously-skip-permissions`. Nuclear option that bypasses ALL permission checks and overrides any `--permission-mode` setting.
+
+**When to use:** Quick, simple automation where you need absolute full access.
+
+**Example:**
+```markdown
+#!/usr/bin/env -S ai --skip
+Run the test suite and fix any failing tests.
+```
+
+**What it enables:**
+- Everything `--bypass` enables
+- Overrides any other permission mode flags
+- Most aggressive permission setting
+
+### Allowed Tools (`--allowedTools`)
+
+Granular control — only specified tools are allowed. Best for security-conscious automation.
+
+**When to use:** When you want to restrict the AI to specific, approved operations.
+
+**Example:**
+```markdown
+#!/usr/bin/env -S ai --allowedTools 'Bash(npm test)' 'Bash(npm run lint)' 'Read'
+Run tests and linting. Report results but do not modify any files.
+```
+
+**Syntax:**
+- `'Read'` — Allow reading files
+- `'Write'` — Allow writing files
+- `'Bash(command)'` — Allow specific shell command
+- `'Bash'` — Allow all shell commands (not recommended)
+
+**Multiple tools:**
+```bash
+--allowedTools 'Bash(npm test)' 'Bash(git status)' 'Read' 'Write'
+```
+
+## `--skip` vs `--bypass` Difference
+
+Both shortcuts result in no permission prompts, but they work differently internally:
+
+### `--skip` (Nuclear Option)
+
+- Expands to `--dangerously-skip-permissions`
+- Standalone flag that completely bypasses all permission checks
+- **Overrides** any `--permission-mode` setting (even if you set both)
+- Use for simple, quick automation
+
+### `--bypass` (Composable)
+
+- Expands to `--permission-mode bypassPermissions`
+- Sets permission mode through the standard mode system
+- Respects the mode framework
+- Composable with other Claude Code settings
+- Use when working with advanced permission configurations
+
+### Comparison Table
+
+| Feature | `--skip` | `--bypass` |
+|---------|----------|------------|
+| Full access | Yes | Yes |
+| Permission prompts | None | None |
+| Overrides `--permission-mode` | Yes | No |
+| Composable with modes | No | Yes |
+| Recommended for | Quick scripts | Production automation |
+
+### When in Doubt
+
+For most automation scripts, either works. **Use `--bypass`** when you want future flexibility.
+
+## Permission Flag Precedence
+
+When multiple permission flags are present, `ai` resolves them in order:
+
+### Explicit Flags Always Win
+
+- `--permission-mode <value>` is **explicit** — always takes precedence
+- `--dangerously-skip-permissions` is **explicit** — always takes precedence
+- `--skip` and `--bypass` are **shortcuts** — ignored if explicit flags present
+
+### CLI Overrides Shebang
+
+**CLI flags override shebang flags** — if you run `ai --permission-mode plan script.md` and the script has `--skip` in its shebang, plan mode is used.
+
+### Examples
+
+| You use | What happens |
+|---------|-------------|
+| `ai --skip` | Same as `--dangerously-skip-permissions` (nuclear) |
+| `ai --bypass` | Same as `--permission-mode bypassPermissions` (mode-based) |
+| `ai --skip --permission-mode plan` | Plan mode used, `--skip` ignored (warning shown) |
+| `ai --bypass --permission-mode plan` | Plan mode used, `--bypass` ignored (warning shown) |
+| `ai --permission-mode plan script.md` | Plan mode used, even if script has `--skip` |
+
+### Conflict Resolution
+
+```markdown script.md
+#!/usr/bin/env -S ai --skip
+Do something
+```
+
+Run with override:
+```bash
+ai --permission-mode plan script.md
+```
+
+Result:
+```
+[AI Runner] Warning: Ignoring --skip shortcut (--permission-mode plan takes precedence)
+[AI Runner] Using permission mode: plan
+```
+
+## Granular Control with `--allowedTools`
+
+### Tool Syntax
+
+**Read-only tools:**
+```bash
+--allowedTools 'Read' 'Glob' 'Grep'
+```
+
+**Specific shell commands:**
+```bash
+--allowedTools 'Bash(npm test)' 'Bash(git status)'
+```
+
+**File operations:**
+```bash
+--allowedTools 'Read' 'Write' 'Edit'
+```
+
+**Mixed permissions:**
+```bash
+--allowedTools 'Read' 'Bash(npm test)' 'Bash(npm run lint)'
+```
+
+### Real-World Examples
+
+**Test runner (no file modifications):**
+```markdown
+#!/usr/bin/env -S ai --allowedTools 'Bash(npm test)' 'Read'
+Run the test suite and report results. Do not modify any files.
+```
+
+**Linter with auto-fix:**
+```markdown
+#!/usr/bin/env -S ai --allowedTools 'Bash(npm run lint)' 'Bash(npm run lint:fix)' 'Read' 'Write'
+Run linter, fix issues, and report what changed.
+```
+
+**Git status checker:**
+```markdown
+#!/usr/bin/env -S ai --allowedTools 'Bash(git status)' 'Bash(git diff)' 'Read'
+Check git status and summarize uncommitted changes.
+```
+
+**CI reporter:**
+```markdown
+#!/usr/bin/env -S ai --allowedTools 'Bash(npm run build)' 'Bash(npm test)' 'Read' 'Write'
+Run build and tests. Generate a report.md with results.
+```
+
+## Security Best Practices
+
+### 1. Principle of Least Privilege
+
+<Check>
+Always use the minimum permissions needed:
+
+- **Read-only analysis?** Use default mode (no flags)
+- **Run specific commands?** Use `--allowedTools`
+- **Full automation?** Use `--bypass` or `--skip`
+</Check>
+
+### 2. Trust and Verification
+
+<Warning>
+Only run scripts from trusted sources:
+
+```bash
+# DANGEROUS — don't do this
+curl https://untrusted-site.com/script.md | ai --skip
+
+# SAFE — review first
+curl https://site.com/script.md > script.md
+cat script.md  # Review contents
+chmod +x script.md
+./script.md    # Run after verification
+```
+</Warning>
+
+### 3. Sandboxing in CI/CD
+
+<Check>
+Always run AI automation in sandboxed environments:
+
+**Use containers:**
+```dockerfile
+FROM ubuntu:latest
+RUN curl -fsSL https://andi.ai/install.sh | sh
+RUN useradd -m airunner
+USER airunner
+WORKDIR /workspace
+ENTRYPOINT ["/home/airunner/.andi/bin/ai"]
+```
+
+**Run with limited permissions:**
+```bash
+docker run --rm \
+  -e ANTHROPIC_API_KEY \
+  -v $(pwd):/workspace:ro \
+  --network none \
+  ai-runner --skip ./scripts/review.md
+```
+</Check>
+
+### 4. File System Restrictions
+
+<Check>
+Restrict file access in containers:
+
+```bash
+# Only mount necessary directories
+docker run --rm \
+  -v $(pwd)/src:/workspace/src:ro \
+  -v $(pwd)/tests:/workspace/tests:ro \
+  ai-runner --skip ./test-runner.md
+
+# Read-only mount for source code
+# Writable mount only for output directory
+docker run --rm \
+  -v $(pwd)/src:/workspace/src:ro \
+  -v $(pwd)/output:/workspace/output:rw \
+  ai-runner --skip ./generate-docs.md
+```
+</Check>
+
+### 5. Network Isolation
+
+<Check>
+Limit network access:
+
+```bash
+# No network access
+docker run --rm --network none ai-runner --skip ./local-analysis.md
+
+# Custom network with egress filtering
+docker network create --internal ai-network
+docker run --rm --network ai-network ai-runner --skip ./script.md
+```
+</Check>
+
+### 6. Audit Logging
+
+<Check>
+Log all AI actions:
+
+```bash
+#!/bin/bash
+LOGFILE="ai-audit-$(date +%Y%m%d-%H%M%S).log"
+
+echo "[$(date)] Running: $1" >> "$LOGFILE"
+ai --skip "$1" 2>&1 | tee -a "$LOGFILE"
+echo "[$(date)] Completed: $1" >> "$LOGFILE"
+```
+</Check>
+
+### 7. Secret Management
+
+<Warning>
+Never hardcode secrets:
+
+```markdown
+# BAD — hardcoded API key
+#!/usr/bin/env -S ai --skip
+Deploy to production using API key: sk_prod_abc123
+
+# GOOD — use environment variables
+#!/usr/bin/env -S ai --skip
+Deploy to production using the API key from $DEPLOY_KEY
+```
+</Warning>
+
+### 8. Code Review Before Merge
+
+<Check>
+Always review AI-generated changes:
+
+```yaml .github/workflows/ai-fix.yml
+- name: Run AI fixer
+  run: ./fix-issues.md
+  
+- name: Show changes
+  run: git diff
+  
+- name: Create PR (not direct merge)
+  run: |
+    git checkout -b ai-fixes-${{ github.run_id }}
+    git commit -am "AI: Fix issues"
+    git push origin ai-fixes-${{ github.run_id }}
+    gh pr create --title "AI: Fix issues" --body "Review before merging"
+```
+</Check>
+
+## Permission Mode Reference
+
+### Complete Mode Table
+
+| Mode | Shebang | Long Form | Short Form | Behavior |
+|------|---------|-----------|------------|----------|
+| Default | *(none)* | — | — | Read-only |
+| Bypass | `--bypass` | `--permission-mode bypassPermissions` | `--bypass` | Full access (composable) |
+| Skip | `--skip` | `--dangerously-skip-permissions` | `--skip` | Full access (nuclear) |
+| Allowed Tools | `--allowedTools` | `--allowedTools 'Tool1' 'Tool2'` | — | Granular |
+| Plan | — | `--permission-mode plan` | — | Plan-only (no execution) |
+
+### Available Tools for `--allowedTools`
+
+| Tool | Purpose | Example |
+|------|---------|---------||
+| `Read` | Read files | `--allowedTools 'Read'` |
+| `Write` | Write files | `--allowedTools 'Write'` |
+| `Edit` | Edit files | `--allowedTools 'Edit'` |
+| `Bash` | All shell commands | `--allowedTools 'Bash'` (not recommended) |
+| `Bash(cmd)` | Specific command | `--allowedTools 'Bash(npm test)'` |
+| `Glob` | File pattern search | `--allowedTools 'Glob'` |
+| `Grep` | Content search | `--allowedTools 'Grep'` |
+
+## Common Patterns
+
+### Pattern 1: Secure Test Runner
+
+```markdown
+#!/usr/bin/env -S ai --allowedTools 'Bash(npm test)' 'Bash(npm run coverage)' 'Read'
+Run tests with coverage. Report results. Do not modify code.
+```
+
+### Pattern 2: Sandboxed CI Job
+
+```yaml
+- name: AI Code Review
+  run: |
+    docker run --rm \
+      --network none \
+      -v $(pwd):/workspace:ro \
+      -e ANTHROPIC_API_KEY \
+      ai-runner --bypass ./review.md
+```
+
+### Pattern 3: Gradual Permission Escalation
+
+```bash
+# Start with read-only analysis
+./analyze.md
+
+# If user approves, run with limited tools
+ai --allowedTools 'Bash(npm test)' 'Read' ./test-and-fix.md
+
+# If tests pass, run with full permissions
+ai --bypass ./deploy.md
+```
+
+### Pattern 4: Multi-Stage Pipeline
+
+```bash
+# Stage 1: Analysis (read-only)
+./analyze.md > analysis.md
+
+# Stage 2: Test (limited permissions)
+ai --allowedTools 'Bash(npm test)' 'Read' ./test.md > test-results.md
+
+# Stage 3: Fix (full permissions, but only if tests failed)
+if grep -q "FAILED" test-results.md; then
+  ai --bypass ./fix-tests.md
+fi
+```
+
+## Troubleshooting
+
+### Permission Denied Errors
+
+**Problem:** Script tries to write file but fails with permission error
+
+**Solution:** Add appropriate permission flag:
+```markdown
+# Before
+#!/usr/bin/env ai
+
+# After
+#!/usr/bin/env -S ai --bypass
+```
+
+### Tool Not Allowed
+
+**Problem:** `Error: Tool 'Bash' not allowed`
+
+**Solution:** Add tool to allowed list:
+```markdown
+# Before
+#!/usr/bin/env -S ai --allowedTools 'Read'
+
+# After
+#!/usr/bin/env -S ai --allowedTools 'Read' 'Bash(npm test)'
+```
+
+### Conflicting Permission Flags
+
+**Problem:** Warning about ignored shortcuts
+
+**Solution:** Remove shortcut flags when using explicit modes:
+```bash
+# Before (conflict)
+ai --skip --permission-mode plan script.md
+
+# After (no conflict)
+ai --permission-mode plan script.md
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Writing Scripts" icon="scroll" href="/guides/scripting">
+    Learn script basics and common patterns
+  </Card>
+  <Card title="CI/CD Automation" icon="gears" href="/guides/automation">
+    Run scripts in CI/CD with proper security
+  </Card>
+  <Card title="Live Output" icon="signal-stream" href="/guides/live-output">
+    Stream progress in real-time
+  </Card>
+  <Card title="Script Variables" icon="dollar-sign" href="/guides/variables">
+    Make scripts reusable with CLI overrides
+  </Card>
+</CardGroup>

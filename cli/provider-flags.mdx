@@ -1,0 +1,319 @@
+---
+title: Provider Flags
+description: Switch between Claude subscriptions and cloud providers
+---
+
+Provider flags let you switch between different AI providers and models on the fly. Use your Claude subscription, cloud platforms, or local models without changing configuration files.
+
+## Available Providers
+
+### Local Providers (Free)
+
+<ParamField path="--ollama" type="flag">
+  **Ollama** - Run models locally or on Ollama's cloud
+  
+  ```bash
+  ai --ollama
+  ai --ollama task.md
+  ai --ollama --model qwen3-coder
+  ai --ollama --model minimax-m2.5:cloud  # Cloud model, no GPU needed
+  ```
+  
+  **Short form:** `--ol`
+  
+  **Setup:**
+  ```bash
+  brew install ollama              # macOS
+  ollama pull qwen3-coder          # Pull a model
+  ollama serve                     # Start server
+  ```
+  
+  **Requirements:**
+  - Ollama installed and running at `http://localhost:11434`
+  - 24GB+ VRAM for local coding models (cloud models work on any hardware)
+  
+  See [Local Providers](/providers/local) for details.
+</ParamField>
+
+<ParamField path="--lmstudio" type="flag">
+  **LM Studio** - Local models with MLX support (fast on Apple Silicon)
+  
+  ```bash
+  ai --lmstudio
+  ai --lm task.md
+  ai --lm --model mlx-community/Qwen2.5-Coder-32B-Instruct-4bit
+  ```
+  
+  **Short form:** `--lm`
+  
+  **Setup:**
+  1. Download LM Studio from [lmstudio.ai](https://lmstudio.ai)
+  2. Load a model in the UI
+  3. Start server: `lms server start --port 1234`
+  
+  **Requirements:**
+  - LM Studio running at `http://localhost:1234`
+  - 24GB+ unified memory for coding models
+  
+  See [Local Providers](/providers/local) for details.
+</ParamField>
+
+### Cloud Providers
+
+<ParamField path="--aws" type="flag">
+  **AWS Bedrock** - Claude models on Amazon Web Services
+  
+  ```bash
+  ai --aws
+  ai --aws --opus task.md
+  ai --aws --haiku --resume
+  ```
+  
+  **Setup in `~/.ai-runner/secrets.sh`:**
+  ```bash
+  export AWS_PROFILE="your-profile-name"
+  export AWS_REGION="us-west-2"
+  ```
+  
+  **Authentication:**
+  - AWS credentials file (`~/.aws/credentials`)
+  - Or IAM role (for EC2/ECS)
+  
+  See [Cloud Providers](/providers/cloud) for details.
+</ParamField>
+
+<ParamField path="--vertex" type="flag">
+  **Google Vertex AI** - Claude models on Google Cloud Platform
+  
+  ```bash
+  ai --vertex
+  ai --vertex task.md
+  ai --vertex --sonnet --resume
+  ```
+  
+  **Setup in `~/.ai-runner/secrets.sh`:**
+  ```bash
+  export ANTHROPIC_VERTEX_PROJECT_ID="your-gcp-project-id"
+  export CLOUD_ML_REGION="global"
+  ```
+  
+  **Authentication:**
+  - Application default credentials (`gcloud auth application-default login`)
+  - Or service account key file
+  
+  See [Cloud Providers](/providers/cloud) for details.
+</ParamField>
+
+<ParamField path="--apikey" type="flag">
+  **Anthropic API** - Direct access to Anthropic's API
+  
+  ```bash
+  ai --apikey
+  ai --apikey --opus task.md
+  ```
+  
+  **Setup in `~/.ai-runner/secrets.sh`:**
+  ```bash
+  export ANTHROPIC_API_KEY="sk-ant-..."
+  ```
+  
+  **Authentication:**
+  - API key from [console.anthropic.com](https://console.anthropic.com)
+  
+  See [Cloud Providers](/providers/cloud) for details.
+</ParamField>
+
+<ParamField path="--azure" type="flag">
+  **Microsoft Azure** - Claude models on Azure Foundry
+  
+  ```bash
+  ai --azure
+  ai --azure task.md
+  ```
+  
+  **Setup in `~/.ai-runner/secrets.sh`:**
+  ```bash
+  export ANTHROPIC_FOUNDRY_API_KEY="your-azure-api-key"
+  export ANTHROPIC_FOUNDRY_RESOURCE="your-resource-name"
+  ```
+  
+  **Authentication:**
+  - Azure Foundry API key
+  
+  See [Cloud Providers](/providers/cloud) for details.
+</ParamField>
+
+<ParamField path="--vercel" type="flag">
+  **Vercel AI Gateway** - Access 100+ models (OpenAI, xAI, Google, Meta, and more)
+  
+  ```bash
+  ai --vercel
+  ai --vercel --model openai/gpt-5.2-codex
+  ai --vercel --model anthropic/claude-opus-4-6
+  ai --vercel --model google/gemini-exp-2506
+  ```
+  
+  **Setup in `~/.ai-runner/secrets.sh`:**
+  ```bash
+  export VERCEL_AI_GATEWAY_TOKEN="vck_..."
+  ```
+  
+  **Authentication:**
+  - Vercel AI Gateway token from [vercel.com/ai-gateway](https://vercel.com/ai-gateway)
+  
+  **Supported models:**
+  - OpenAI (GPT-4, GPT-5, etc.)
+  - xAI (Grok models)
+  - Google (Gemini models)
+  - Meta (Llama models)
+  - Anthropic (Claude models)
+  - And many more
+  
+  See [Cloud Providers](/providers/cloud) for details.
+</ParamField>
+
+<ParamField path="--pro" type="flag">
+  **Claude Pro/Max** - Your regular Claude subscription
+  
+  ```bash
+  ai --pro
+  ai --pro --resume
+  ```
+  
+  **Authentication:**
+  - Claude subscription (log in with `claude`)
+  
+  **Note:** This is the default if you're logged in and don't specify another provider.
+</ParamField>
+
+## Provider Precedence
+
+When no provider is specified, AI Runner auto-detects in this order:
+
+1. **Saved default** from `--set-default`
+2. **Claude subscription** (if logged in)
+3. **Error** (no provider available)
+
+CLI flags always override saved defaults.
+
+## Examples
+
+### Basic Usage
+
+```bash
+# Use default provider (Claude subscription)
+ai task.md
+
+# Override to use AWS Bedrock
+ai --aws task.md
+
+# Use local Ollama (free)
+ai --ollama task.md
+```
+
+### Combining Providers and Models
+
+```bash
+# AWS with Opus
+ai --aws --opus task.md
+
+# Ollama with specific model
+ai --ollama --model qwen3-coder task.md
+
+# Vercel with OpenAI
+ai --vercel --model openai/gpt-5.2-codex task.md
+```
+
+### Interactive Sessions
+
+```bash
+# Start session with AWS
+ai --aws
+
+# Start with Ollama and bypass permissions
+ai --ollama --bypass
+
+# Start with Vertex and agent teams
+ai --vertex --team
+```
+
+### Resume Conversations
+
+```bash
+# Hit rate limit on Pro
+ai --pro
+# "Rate limit exceeded"
+
+# Switch to AWS and continue
+ai --aws --resume
+
+# Or switch to free Ollama
+ai --ollama --resume
+```
+
+### Shebang Scripts
+
+```markdown
+#!/usr/bin/env -S ai --aws --opus
+Analyze this codebase with AWS Bedrock.
+```
+
+```markdown
+#!/usr/bin/env -S ai --ollama --haiku
+Quick analysis with local Ollama.
+```
+
+### Set Default Provider
+
+```bash
+# Save AWS as default
+ai --aws --set-default
+
+# Now 'ai' uses AWS by default
+ai task.md
+
+# Override still works
+ai --ollama task.md
+
+# Clear default
+ai --clear-default
+```
+
+## Provider Status
+
+Check which providers are configured:
+
+```bash
+ai-status
+```
+
+See [ai-status reference](/cli/ai-status) for details.
+
+## Multiple Providers Workflow
+
+Switch between providers based on your needs:
+
+```bash
+# Quick tests: use free Ollama
+ai --ollama --haiku quick-test.md
+
+# Complex tasks: use AWS with Opus
+ai --aws --opus complex-task.md
+
+# Cost-sensitive: use Haiku on any provider
+ai --apikey --haiku analyze.md
+
+# Rate-limited: fall back to different provider
+ai --aws --resume  # Continue after hitting Pro rate limit
+```
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Model Flags" icon="brain" href="./model-flags">
+    Select model tiers and specific model IDs
+  </Card>
+  <Card title="Provider Guides" icon="book" href="/providers">
+    Detailed setup for each provider
+  </Card>
+</CardGroup>

@@ -1,0 +1,270 @@
+---
+title: "Code Analysis"
+description: "Analyze codebases with read-only access - no permission flags needed"
+---
+
+Analyze code architecture without modifying anything. This example shows how to use `--skip` for automation while keeping the analysis read-only.
+
+## The Script
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip
+Summarize the architecture of this codebase. List the main entry points,
+key modules, and how data flows through the system.
+```
+
+<Tip>
+From `examples/analyze-code.md`. Uses Sonnet for better code understanding.
+</Tip>
+
+## How It Works
+
+### Model Selection: Sonnet
+
+```bash
+--sonnet
+```
+
+Sonnet is the balanced model tier:
+
+- **Better than Haiku** for code understanding and technical analysis
+- **Cheaper than Opus** - you don't need the most capable model for analysis
+- **Fast enough** for real-time exploration
+
+**When to use each model:**
+
+| Task | Model | Why |
+|------|-------|-----|
+| Greet user, format text | `--haiku` | Simple text generation |
+| **Analyze code, run tests** | **`--sonnet`** | Balanced reasoning + cost |
+| Design architecture, complex debugging | `--opus` | Maximum reasoning power |
+
+### The `--skip` Flag
+
+```bash
+--skip
+```
+
+This is shorthand for `--dangerously-skip-permissions`. It allows the AI to:
+
+- **Read files** without prompting you for each one
+- Use tools automatically
+- Explore the codebase freely
+
+<Warning>
+Wait, isn't `--skip` dangerous?
+
+**Yes, but only for write operations.** This script's prompt is **read-only** - it only asks for analysis. The AI won't modify files unless your prompt tells it to.
+
+For true safety, use granular permissions:
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --allowedTools 'Read' 'Grep' 'Glob'
+Summarize the architecture of this codebase.
+```
+
+See [Permission Modes](/guides/permissions) for production patterns.
+</Warning>
+
+### The Prompt
+
+```
+Summarize the architecture of this codebase. List the main entry points,
+key modules, and how data flows through the system.
+```
+
+The prompt is specific about what to analyze:
+
+- **Main entry points** - where execution starts
+- **Key modules** - important components
+- **Data flow** - how information moves through the system
+
+The more specific your prompt, the better the analysis.
+
+## Running the Script
+
+### Analyze any codebase
+
+```bash
+# Make it executable
+chmod +x analyze-code.md
+
+# Run in any project directory
+cd ~/projects/my-app
+./analyze-code.md
+```
+
+The AI will:
+
+1. Explore the directory structure
+2. Read key files (package.json, main entry points, etc.)
+3. Analyze the architecture
+4. Summarize findings
+
+### Override the provider
+
+```bash
+# Use AWS Bedrock instead
+ai --aws analyze-code.md
+
+# Use Opus for deeper analysis
+ai --opus analyze-code.md
+
+# Use local Ollama (free!)
+ai --ollama analyze-code.md
+```
+
+### Save output to file
+
+```bash
+./analyze-code.md > architecture-summary.txt
+```
+
+Only the AI's response is saved (not status messages).
+
+## Real-World Usage
+
+### Quick Project Overview
+
+When joining a new codebase:
+
+```bash
+cd ~/projects/new-repo
+./analyze-code.md > ARCHITECTURE.md
+```
+
+You now have a generated architecture document.
+
+### Compare Multiple Projects
+
+```bash
+for dir in project-*; do
+    cd "$dir"
+    echo "# $dir" >> ../analysis.txt
+    ../analyze-code.md >> ../analysis.txt
+    cd ..
+done
+```
+
+### CI/CD Documentation
+
+Generate architecture docs automatically:
+
+```yaml
+# .github/workflows/docs.yml
+name: Update Architecture Docs
+on:
+  push:
+    branches: [main]
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Analyze codebase
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          git clone https://github.com/andisearch/airun.git
+          cd airun && ./setup.sh
+          cd ..
+          ai --apikey --sonnet --skip << 'EOF' > ARCHITECTURE.md
+          Summarize this codebase architecture. List main entry points,
+          key modules, and data flow.
+          EOF
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      - name: Commit changes
+        run: |
+          git config user.name "Architecture Bot"
+          git config user.email "bot@example.com"
+          git add ARCHITECTURE.md
+          git commit -m "docs: update architecture" || true
+          git push
+```
+
+## Customizing the Analysis
+
+### Focus on Specific Aspects
+
+**Security analysis:**
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip
+Analyze this codebase for security issues. Check for:
+- SQL injection vulnerabilities
+- XSS vulnerabilities  
+- Authentication/authorization flaws
+- Sensitive data exposure
+
+Be specific about file paths and line numbers.
+```
+
+**Performance analysis:**
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip
+Analyze this codebase for performance issues:
+- Inefficient algorithms (O(n²) or worse)
+- Unnecessary re-renders
+- Memory leaks
+- Large bundle size contributors
+```
+
+**Test coverage analysis:**
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip
+Analyze test coverage in this codebase:
+- Which modules have tests?
+- Which critical paths are untested?
+- Are there obsolete tests?
+- Suggest priority areas for new tests.
+```
+
+### Limit Scope
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip
+Analyze only the API layer in src/api/. Document:
+- Available endpoints
+- Request/response schemas
+- Authentication requirements
+```
+
+## Why `--skip` Works Here
+
+This script uses `--skip` even though it's read-only because:
+
+1. **Automation** - No permission prompts when reading files
+2. **Speed** - The AI explores freely without asking
+3. **Safe prompt** - The prompt never asks to modify anything
+
+The risk comes from the **prompt**, not the flag. A read-only prompt with `--skip` is safe.
+
+<Info>
+**For production scripts**, prefer explicit tool allowlists:
+
+```bash
+--allowedTools 'Read' 'Grep' 'Glob'
+```
+
+This prevents accidents if someone modifies your prompt later.
+</Info>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Test Automation" icon="flask" href="/examples/test-automation">
+    Run commands and report results
+  </Card>
+  <Card title="Code Review" icon="magnifying-glass-chart" href="/examples/code-review">
+    Automated security and quality scanning
+  </Card>
+  <Card title="CI/CD Integration" icon="gear" href="/examples/ci-cd">
+    Run AIRun in GitHub Actions and GitLab CI
+  </Card>
+  <Card title="Scripting Guide" icon="book" href="/scripting">
+    Permission modes and security patterns
+  </Card>
+</CardGroup>

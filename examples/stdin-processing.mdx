@@ -1,0 +1,507 @@
+---
+title: "Stdin Processing"
+description: "Pipe data into AIRun scripts for Unix-style automation"
+---
+
+Pipe data directly into AI scripts for analysis and transformation. This example shows how AIRun handles stdin like any Unix command.
+
+## The Script
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Analyze the data provided on stdin. Summarize the key points, highlight
+anything unusual, and suggest next steps.
+```
+
+<Tip>
+From `examples/analyze-stdin.md`. Uses Haiku for fast, cheap data analysis.
+</Tip>
+
+## How It Works
+
+### Stdin Support
+
+AIRun scripts accept stdin like any Unix command:
+
+```bash
+cat data.json | ./analyze-stdin.md
+```
+
+The piped data is automatically prepended to your prompt:
+
+```
+[Data from stdin]
+{"users": 1500, "revenue": 45000, ...}
+
+Analyze the data provided on stdin. Summarize the key points...
+```
+
+### Why Use Haiku?
+
+This script uses `--haiku` because:
+
+- **Fast** - Data analysis doesn't need deep reasoning
+- **Cheap** - Processing lots of files costs less
+- **Sufficient** - Haiku can summarize and identify patterns
+
+**Model selection for data tasks:**
+
+| Task | Model |
+|------|-------|
+| Summarize JSON/CSV/logs | `--haiku` |
+| Complex data transformations | `--sonnet` |
+| Data modeling and schema design | `--opus` |
+
+## Running the Script
+
+### Pipe from File
+
+```bash
+cat data.json | ./analyze-stdin.md
+```
+
+### Pipe from Command
+
+```bash
+# Analyze git history
+git log --oneline -20 | ./analyze-stdin.md
+
+# Analyze package dependencies
+npm list --depth=0 | ./analyze-stdin.md
+
+# Analyze recent logs
+tail -100 /var/log/app.log | ./analyze-stdin.md
+```
+
+### Pipe from API
+
+```bash
+# Fetch and analyze
+curl -s https://api.example.com/metrics | ./analyze-stdin.md
+
+# GitHub API
+curl -s https://api.github.com/repos/user/repo/issues | ./analyze-stdin.md
+```
+
+### Save Output
+
+```bash
+cat data.json | ./analyze-stdin.md > analysis.txt
+```
+
+## Real-World Usage
+
+### Process JSON Data
+
+```bash
+cat metrics.json | ./analyze-stdin.md
+```
+
+**Input (metrics.json):**
+
+```json
+{
+  "date": "2026-03-03",
+  "users": 1500,
+  "revenue": 45000,
+  "signups": 120,
+  "churn": 8,
+  "response_time_ms": [120, 150, 890, 130, 125]
+}
+```
+
+**Output:**
+
+```
+Key metrics summary:
+- Strong user base: 1,500 active users
+- Revenue: $45,000
+- Growth: 120 new signups, 8 churn (93% retention)
+
+Unusual findings:
+- Response time spike: 890ms outlier (others 120-150ms)
+- Investigate slow requests
+
+Next steps:
+- Monitor response times for performance regression
+- Analyze churn reasons
+- Maintain current signup momentum
+```
+
+### Analyze CSV Files
+
+```bash
+cat sales.csv | ./analyze-stdin.md
+```
+
+**Input (sales.csv):**
+
+```csv
+date,product,quantity,revenue
+2026-03-01,Widget A,50,5000
+2026-03-01,Widget B,30,4500
+2026-03-02,Widget A,45,4500
+2026-03-02,Widget B,35,5250
+2026-03-03,Widget A,0,0
+```
+
+**Output:**
+
+```
+Sales analysis:
+- Widget B trending up (30 → 35 units, $4,500 → $5,250)
+- Widget A trending down (50 → 45 → 0 units)
+
+Unusual finding:
+- Widget A had ZERO sales on 2026-03-03 (out of stock?)
+
+Next steps:
+- Check Widget A inventory status immediately
+- Increase Widget B stock to meet demand
+```
+
+### Process Log Files
+
+```bash
+tail -500 /var/log/nginx/access.log | ./analyze-stdin.md
+```
+
+With a custom prompt:
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Analyze the nginx access logs provided on stdin:
+- Request volume and patterns
+- Most accessed endpoints
+- Error rates
+- Unusual activity or potential attacks
+```
+
+### Analyze Git History
+
+```bash
+git log --oneline -50 | ./analyze-stdin.md
+```
+
+Custom prompt:
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Analyze the git commit history on stdin:
+- What areas of the codebase are most active?
+- Are commit messages clear and descriptive?
+- Any patterns or concerns?
+```
+
+## Chaining Scripts Together
+
+Pipe output from one AI script to another:
+
+```bash
+# Extract → Analyze → Format pipeline
+./extract-data.md | ./analyze-stdin.md | ./format-report.md > final.txt
+```
+
+**extract-data.md:**
+
+```markdown
+#!/usr/bin/env -S ai --haiku --skip
+Read metrics.json and output only the fields: users, revenue, signups.
+Format as CSV.
+```
+
+**analyze-stdin.md:**
+
+```markdown  
+#!/usr/bin/env -S ai --haiku
+Analyze the CSV data on stdin. Identify trends and anomalies.
+```
+
+**format-report.md:**
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Format the analysis on stdin as a professional email to executives.
+```
+
+### Process Multiple Files
+
+```bash
+for file in logs/*.log; do
+    echo "\n=== $file ==="
+    cat "$file" | ./analyze-stdin.md
+done > analysis-report.txt
+```
+
+## Controlling Stdin Position
+
+By default, piped data is **prepended** to your prompt. You can control this:
+
+```bash
+# Prepend (default)
+cat data.json | ./script.md
+
+# Append
+cat data.json | ./script.md --stdin-position append
+
+# Replace entire prompt
+cat data.json | ./script.md --stdin-position replace
+```
+
+**Example use case for append:**
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Analyze the following data and compare it to yesterday's metrics:
+```
+
+```bash
+cat today.json | ./compare.md --stdin-position append
+```
+
+Result:
+
+```
+Analyze the following data and compare it to yesterday's metrics:
+{"users": 1500, "revenue": 45000}
+```
+
+## Data Processing Patterns
+
+### Transform JSON to CSV
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Convert the JSON data on stdin to CSV format.
+Include all fields as columns.
+```
+
+```bash
+cat data.json | ./json-to-csv.md > data.csv
+```
+
+### Filter and Aggregate
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+The stdin contains JSON with an array of transactions.
+Filter for transactions > $1000 and sum the total.
+Output only the total amount.
+```
+
+```bash
+cat transactions.json | ./filter-sum.md
+# Output: $45,230
+```
+
+### Detect Anomalies
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Analyze the time-series data on stdin (CSV format).
+Detect anomalies using the 3-sigma rule.
+Output only the anomalous rows.
+```
+
+```bash
+cat timeseries.csv | ./detect-anomalies.md > anomalies.csv
+```
+
+### Enrich Data
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+The stdin contains a list of GitHub usernames (one per line).
+For each user, output: username, estimated location, primary language.
+Base this on common patterns in usernames and your knowledge.
+```
+
+```bash
+cat users.txt | ./enrich-users.md > enriched-users.csv
+```
+
+## Stdin vs File Arguments
+
+### When to Use Stdin
+
+✅ **Use stdin when:**
+
+- Piping from commands (`git log | ./script.md`)
+- Chaining scripts together
+- Processing streams
+- Keeping scripts generic (don't hardcode filenames)
+
+### When to Use File Arguments
+
+✅ **Use file arguments when:**
+
+- The script needs to read multiple files
+- The script needs to know the filename
+- You want to be explicit about what's being processed
+
+**Example with file argument:**
+
+```markdown
+#!/usr/bin/env -S ai --haiku --skip
+Read metrics.json and analyze the data.
+Compare to historical data in metrics-history.json.
+```
+
+```bash
+ai script.md  # Script reads files directly
+```
+
+Vs stdin approach:
+
+```bash
+cat metrics.json | ./script.md  # Piped data
+```
+
+## Combining Stdin with Other Flags
+
+### Stdin + Live Output
+
+```bash
+cat large-dataset.csv | ai --live --haiku << 'EOF'
+Analyze the CSV data on stdin.
+Print a summary after every 1000 rows.
+Finally, output overall statistics.
+EOF
+```
+
+### Stdin + Provider Override
+
+```bash
+# Script uses --haiku, override to --sonnet for better analysis
+cat complex-data.json | ai --sonnet analyze-stdin.md
+```
+
+### Stdin + Variables
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+---
+vars:
+  format: "summary"
+---
+Analyze the data on stdin.
+Output format: {{format}}
+```
+
+```bash
+cat data.json | ./analyze.md --format "detailed report"
+```
+
+## CI/CD Examples
+
+### GitHub Actions
+
+```yaml
+name: Analyze Metrics
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup AIRun
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          git clone https://github.com/andisearch/airun.git
+          cd airun && ./setup.sh
+      
+      - name: Fetch and analyze metrics
+        run: |
+          curl -s https://api.example.com/metrics | \
+            ai --apikey --haiku << 'EOF' > analysis.md
+          Analyze the metrics JSON on stdin.
+          Highlight any unusual trends or concerns.
+          EOF
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      
+      - name: Upload analysis
+        uses: actions/upload-artifact@v3
+        with:
+          name: daily-analysis
+          path: analysis.md
+```
+
+### Process Database Dumps
+
+```bash
+#!/bin/bash
+# daily-db-analysis.sh
+
+# Export database metrics
+psql -c "SELECT * FROM daily_metrics WHERE date = CURRENT_DATE" -t -A -F"," | \
+  ai --haiku --apikey << 'EOF' > db-analysis.txt
+Analyze the database metrics CSV on stdin.
+Compare to typical patterns and flag anomalies.
+EOF
+
+# Email results
+mail -s "Daily DB Analysis" team@example.com < db-analysis.txt
+```
+
+## Troubleshooting
+
+### No Stdin Detected
+
+**Problem:** Script doesn't see piped data.
+
+**Solution:** Make sure you're actually piping:
+
+```bash
+# Wrong - passes filename as argument, not stdin
+./analyze-stdin.md data.json
+
+# Correct - pipes file contents to stdin  
+cat data.json | ./analyze-stdin.md
+```
+
+### Stdin Data Not in Prompt
+
+**Problem:** AI says "no data provided."
+
+**Solution:** Check that stdin isn't empty:
+
+```bash
+# Debug: see what's being piped
+cat data.json | tee /dev/stderr | ./analyze-stdin.md
+```
+
+### Binary Data Issues
+
+**Problem:** Piping binary files causes errors.
+
+**Solution:** AIRun expects text data. Convert binary first:
+
+```bash
+# Don't pipe binary directly
+cat image.png | ./analyze.md  # ERROR
+
+# Convert to base64 first
+base64 image.png | ./analyze-base64.md  # OK
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Data Processing" icon="database" href="/examples/data-processing">
+    Complete data pipeline patterns
+  </Card>
+  <Card title="Chaining Scripts" icon="link" href="/scripting#composable-scripts">
+    Build multi-stage pipelines
+  </Card>
+  <Card title="CI/CD Integration" icon="gear" href="/examples/ci-cd">
+    Automate data analysis in CI/CD
+  </Card>
+  <Card title="Live Output" icon="tower-broadcast" href="/examples/live-streaming">
+    Stream processing for large datasets
+  </Card>
+</CardGroup>

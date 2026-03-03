@@ -1,0 +1,410 @@
+---
+title: Output Flags
+description: Control output format, streaming, and input positioning
+---
+
+Output flags control how AI Runner displays results, handles streaming, and processes piped input.
+
+## Streaming Flags
+
+<ParamField path="--live" type="flag">
+  **Stream output in real-time** - Display AI responses as they're generated
+  
+  ```bash
+  ai --live task.md
+  ai --aws --opus --live script.md
+  ai --live --skip automation.md
+  ```
+  
+  **What it does:**
+  - Enables real-time streaming output
+  - Shows AI response as it's being generated (word by word)
+  - Status messages go to stderr, clean output to stdout
+  - Automatically adds `--output-format stream-json --verbose`
+  
+  **Requirements:**
+  - `jq` must be installed: `brew install jq`
+  
+  **Use for:**
+  - Long-running scripts where you want progress
+  - Scripts that generate reports (output to file, narration to console)
+  - Debugging and monitoring
+  
+  **Example:**
+  ```bash
+  # Stream to console, clean output to file
+  ai --live report.md > output.txt
+  ```
+  
+  **Shebang:**
+  ```markdown
+  #!/usr/bin/env -S ai --live --skip
+  Generate a detailed report of the codebase.
+  Print progress updates as you work.
+  ```
+</ParamField>
+
+<ParamField path="--quiet" type="flag">
+  **Suppress status messages** - Clean output only (perfect for CI/CD)
+  
+  ```bash
+  ai --quiet task.md
+  ai -q script.md
+  ai --live --quiet report.md > output.txt
+  ```
+  
+  **Short form:** `-q`
+  
+  **What it does:**
+  - Disables `--live` status narration
+  - Suppresses "Using: ..." and "Model: ..." messages
+  - Only shows AI response (clean stdout)
+  - Perfect for piping and file redirection
+  
+  **Use for:**
+  - CI/CD pipelines
+  - Script output that feeds into other tools
+  - File generation without noise
+  
+  **Examples:**
+  ```bash
+  # Clean output to file
+  ai --quiet generate.md > output.txt
+  
+  # Pipe to another command
+  ai -q analyze.md | jq '.results'
+  
+  # CI/CD pipeline
+  ai --skip --quiet test-runner.md | tee results.txt
+  ```
+</ParamField>
+
+## Input Positioning
+
+<ParamField path="--stdin-position" type="flag">
+  **Control where piped content goes** - Prepend or append stdin to file content
+  
+  ```bash
+  cat data.json | ai task.md --stdin-position prepend
+  cat data.json | ai task.md --stdin-position append
+  ```
+  
+  **Values:**
+  - `prepend` (default) - Piped content comes before file content
+  - `append` - Piped content comes after file content
+  
+  **Default behavior (prepend):**
+  ```bash
+  cat data.json | ai analyze.md
+  # AI sees:
+  # The following input was provided via stdin:
+  # ---
+  # {json data}
+  # ---
+  #
+  # {content of analyze.md}
+  ```
+  
+  **Append behavior:**
+  ```bash
+  cat data.json | ai analyze.md --stdin-position append
+  # AI sees:
+  # {content of analyze.md}
+  #
+  # ---
+  # The following input was provided via stdin:
+  # ---
+  # {json data}
+  ```
+  
+  **Use prepend for:**
+  - Data-first workflows ("here's the data, now analyze it")
+  - Piping logs/metrics to analysis scripts
+  
+  **Use append for:**
+  - Context-first workflows ("here's the task, here's the data")
+  - Scripts where instructions come first
+</ParamField>
+
+## Output Format
+
+<ParamField path="--output-format" type="flag">
+  **Claude Code native:** Control output format
+  
+  ```bash
+  ai --output-format text task.md
+  ai --output-format json task.md
+  ai --output-format stream-json task.md
+  ```
+  
+  **Values:**
+  - `text` (default) - Plain text output
+  - `json` - Complete JSON response at end
+  - `stream-json` - Streaming JSON (used by `--live`)
+  
+  **Note:** `--live` automatically sets `stream-json`
+  
+  **Examples:**
+  ```bash
+  # Get JSON output
+  ai --output-format json query.md | jq '.response'
+  
+  # Explicit streaming (--live is easier)
+  ai --output-format stream-json --verbose task.md
+  ```
+</ParamField>
+
+<ParamField path="--verbose" type="flag">
+  **Claude Code native:** Show detailed execution information
+  
+  ```bash
+  ai --verbose task.md
+  ai --aws --verbose debug.md
+  ```
+  
+  **What it does:**
+  - Shows detailed internal operations
+  - Displays API requests/responses
+  - Useful for debugging issues
+  
+  **Automatically enabled by:**
+  - `--live` flag
+  - `--output-format stream-json`
+</ParamField>
+
+## Examples
+
+### Real-Time Streaming
+
+```bash
+# Stream output to console
+ai --live task.md
+
+# Stream with file output (status to console, content to file)
+ai --live report.md > output.txt
+
+# Stream with clean stdout (no status)
+ai --live --quiet script.md > clean-output.txt
+```
+
+**Shebang for streaming:**
+```markdown
+#!/usr/bin/env -S ai --live --skip
+Generate a comprehensive report.
+Print updates as you progress through each section.
+```
+
+### CI/CD Clean Output
+
+```bash
+# Suppress all status messages
+ai --quiet generate-config.md > config.json
+ai -q build-report.md | tee report.txt
+
+# Pipeline usage
+ai --skip --quiet test-runner.md | jq '.results.failed'
+```
+
+**GitHub Actions:**
+```yaml
+steps:
+  - name: Generate docs
+    run: |
+      ai --skip --quiet generate-docs.md > docs/api.md
+```
+
+### Unix Pipelines
+
+```bash
+# Pipe data in, prepend (default)
+cat data.json | ai analyze.md
+
+# Pipe data in, append
+cat metrics.log | ai summarize.md --stdin-position append
+
+# Chain scripts
+cat input.txt | ./process.md | ./format.md > final.txt
+
+# Git history analysis
+git log --oneline -20 | ai --live summarize-changes.md
+```
+
+### Debugging
+
+```bash
+# Verbose output for debugging
+ai --verbose --aws debug-connection.md
+
+# Live streaming with full visibility
+ai --live --verbose trace-execution.md
+```
+
+### Report Generation
+
+```markdown
+#!/usr/bin/env -S ai --live
+Generate a detailed security audit report.
+
+For each file you analyze, print:
+- "Analyzing: {filename}"
+- Brief summary of findings
+
+At the end, print the full report in markdown format.
+```
+
+```bash
+chmod +x audit.md
+./audit.md > audit-report.md
+# Console shows progress, file gets clean markdown
+```
+
+### Dual Output Streams
+
+```bash
+# Live narration goes to stderr (console)
+# Clean output goes to stdout (file)
+ai --live report.md > clean-report.txt
+
+# Redirect both separately
+ai --live script.md > output.txt 2> progress.log
+
+# Keep narration, discard output
+ai --live task.md > /dev/null
+```
+
+## Live Streaming Details
+
+When you use `--live`:
+
+1. **Status messages** → stderr (your console)
+2. **Clean output** → stdout (files, pipes)
+3. **Real-time display** → word-by-word as generated
+4. **Requires `jq`** → install with `brew install jq`
+
+**Example output:**
+
+```bash
+$ ai --live task.md > output.txt
+
+Using: Claude Code + AWS Bedrock
+Model: claude-opus-4-6-v1:0
+
+[Streaming]
+Analyzing codebase structure...
+Found 47 source files...
+Generating architecture diagram...
+Writing summary...
+
+Complete!
+
+$ cat output.txt
+# Codebase Architecture
+
+[clean markdown output only]
+```
+
+## Combining Flags
+
+```bash
+# Streaming + permissions + provider
+ai --aws --opus --live --skip report.md > output.txt
+
+# Quiet + permissions + CI/CD
+ai --skip --quiet generate.md | jq '.config'
+
+# Live + quiet (disables live status, keeps streaming)
+ai --live --quiet task.md  # Equivalent to just streaming output
+
+# Verbose + live (double verbose, for debugging)
+ai --live --verbose debug.md
+```
+
+## Stream Processing
+
+### Extract JSON Fields
+
+```bash
+ai --output-format json query.md | jq '.response.text'
+```
+
+### Parse Streaming Output
+
+```bash
+ai --live script.md 2>&1 | grep "^\[" | tee status.log
+```
+
+### Split Streams
+
+```bash
+# Output to file, status to console
+ai --live task.md > output.txt
+
+# Both to separate files
+ai --live task.md > output.txt 2> status.log
+
+# Status only
+ai --live task.md > /dev/null
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="--live shows 'jq not found' error">
+    Install jq for JSON streaming:
+    
+    ```bash
+    # macOS
+    brew install jq
+    
+    # Ubuntu/Debian
+    sudo apt install jq
+    
+    # Verify
+    jq --version
+    ```
+  </Accordion>
+  
+  <Accordion title="Status messages in output file">
+    Status messages go to stdout by default. Use `--quiet` or redirect stderr:
+    
+    ```bash
+    # Suppress status
+    ai --quiet task.md > output.txt
+    
+    # Or redirect streams separately
+    ai task.md > output.txt 2> status.log
+    ```
+  </Accordion>
+  
+  <Accordion title="--live not streaming, just buffering">
+    Make sure you're using the AI Runner wrapper, not calling Claude Code directly:
+    
+    ```bash
+    # ✅ Correct
+    ai --live task.md
+    
+    # ❌ Won't stream properly
+    claude -p "$(cat task.md)" --output-format stream-json
+    ```
+  </Accordion>
+  
+  <Accordion title="Piped input in wrong position">
+    Use `--stdin-position` to control placement:
+    
+    ```bash
+    # Context first, then data
+    cat data.json | ai task.md --stdin-position append
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Permission Flags" icon="shield" href="./permission-flags">
+    Control file access and execution
+  </Card>
+  <Card title="Scripting Guide" icon="code" href="/guides/scripting">
+    Full automation guide with examples
+  </Card>
+</CardGroup>

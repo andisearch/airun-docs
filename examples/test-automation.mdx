@@ -1,0 +1,369 @@
+---
+title: "Test Automation"
+description: "Run test suites automatically and get intelligent analysis of failures"
+---
+
+Automate test execution and failure analysis. This example shows how to use `--skip` to run commands and report results.
+
+## The Script
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip
+Run the test suite for this project. Report which tests passed and which
+failed. If any tests fail, explain the root cause.
+```
+
+<Tip>
+From `examples/run-tests.md`. The AI detects your test framework automatically.
+</Tip>
+
+## How It Works
+
+### Running Commands: `--skip`
+
+```bash
+--skip
+```
+
+Shorthand for `--dangerously-skip-permissions`. This allows the AI to:
+
+- **Run shell commands** (npm test, pytest, cargo test, etc.)
+- **Read test output** without prompting
+- **Analyze failures** by reading source files
+
+Without `--skip`, the AI would prompt you for permission before each command.
+
+<Warning>
+`--skip` gives full system access. Only use it for:
+
+- **Trusted scripts** you wrote yourself
+- **Trusted directories** you control
+- **CI/CD environments** with proper sandboxing
+
+For granular control, use `--allowedTools` instead:
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --allowedTools 'Bash(npm test)' 'Read'
+Run the test suite. Report results but do not modify files.
+```
+</Warning>
+
+### Automatic Framework Detection
+
+The AI automatically detects your test framework:
+
+- **JavaScript/TypeScript:** npm test, jest, vitest, mocha
+- **Python:** pytest, unittest
+- **Rust:** cargo test
+- **Go:** go test
+- **Ruby:** rspec, minitest
+- **Shell scripts** in test/ directories
+
+It looks at package.json, Cargo.toml, go.mod, etc. to figure out what to run.
+
+### Intelligent Failure Analysis
+
+When tests fail, the AI:
+
+1. **Reads the error output** to understand what went wrong
+2. **Examines source files** to find the root cause
+3. **Explains the issue** in plain English
+4. **Suggests fixes** (but doesn't apply them unless prompted)
+
+## Running the Script
+
+### Basic Usage
+
+```bash
+# Make it executable
+chmod +x run-tests.md
+
+# Run in any project directory
+cd ~/projects/my-app
+./run-tests.md
+```
+
+Output:
+
+```
+[AI Runner] Using: Claude Code + Claude Pro
+[AI Runner] Model: Sonnet 4.6
+
+I'll run the test suite using npm test.
+
+✓ 45 tests passed
+✗ 3 tests failed:
+
+1. UserService.createUser - validation error
+   File: src/services/user.service.test.ts:42
+   Root cause: Missing email validation in createUser function
+   The test expects validation but the implementation skips it
+
+2. API /auth/login - 500 error
+   File: src/api/auth.test.ts:78  
+   Root cause: Database connection not mocked in test setup
+   The test tries to connect to a real database
+
+3. Utils.parseDate - timezone handling
+   File: src/utils/date.test.ts:91
+   Root cause: Date parsing assumes UTC but test runs in local timezone
+```
+
+### Save Report to File
+
+```bash
+./run-tests.md > test-report.txt
+```
+
+Only the AI's analysis is saved (status messages go to stderr).
+
+### Override Model or Provider
+
+```bash
+# Use Haiku for faster/cheaper analysis
+ai --haiku run-tests.md
+
+# Use AWS Bedrock
+ai --aws --sonnet run-tests.md
+
+# Use local Ollama (free!)
+ai --ollama run-tests.md
+```
+
+## Real-World Usage
+
+### Pre-Commit Hook
+
+Run tests before each commit:
+
+```bash
+# .git/hooks/pre-commit
+#!/bin/bash
+echo "Running test suite..."
+if ! ai --haiku --skip << 'EOF' > /tmp/test-results.txt; then
+Run the test suite. Only output PASS or FAIL and a count.
+EOF
+    cat /tmp/test-results.txt
+    echo "Tests failed. Commit aborted."
+    exit 1
+fi
+echo "All tests passed."
+```
+
+### CI/CD Integration
+
+**GitHub Actions:**
+
+```yaml
+# .github/workflows/test.yml
+name: Test with AI Analysis
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - name: Install AIRun
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          git clone https://github.com/andisearch/airun.git
+          cd airun && ./setup.sh
+      
+      - name: Run tests with AI analysis
+        run: |
+          ai --apikey --sonnet --skip << 'EOF' > test-report.md
+          Run the test suite. Report pass/fail counts.
+          If any tests fail, analyze root causes and suggest fixes.
+          EOF
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      
+      - name: Upload report
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-analysis
+          path: test-report.md
+```
+
+**GitLab CI:**
+
+```yaml
+# .gitlab-ci.yml
+test:
+  stage: test
+  image: node:20
+  script:
+    - curl -fsSL https://claude.ai/install.sh | bash
+    - git clone https://github.com/andisearch/airun.git
+    - cd airun && ./setup.sh && cd ..
+    - |
+      ai --apikey --sonnet --skip << 'EOF' > test-report.md
+      Run the test suite. Report pass/fail counts and analyze failures.
+      EOF
+  artifacts:
+    paths:
+      - test-report.md
+  variables:
+    ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
+```
+
+### Nightly Test Analysis
+
+Run comprehensive test analysis overnight:
+
+```bash
+#!/bin/bash
+# nightly-test-analysis.sh
+
+cd ~/projects/my-app
+
+ai --apikey --opus --skip << 'EOF' > "test-report-$(date +%Y-%m-%d).md"
+Run the full test suite including integration tests.
+
+For each failure:
+1. Identify the root cause
+2. Check git history for recent changes to related files
+3. Suggest specific fixes with code snippets
+4. Rate the severity (critical/high/medium/low)
+
+Summarize test health trends if you can access previous reports.
+EOF
+
+# Email the report
+mail -s "Nightly Test Report" dev-team@company.com < "test-report-$(date +%Y-%m-%d).md"
+```
+
+### Fix Tests Automatically
+
+<Warning>
+This modifies code. Only use in development, never in CI without review.
+</Warning>
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip
+Run the test suite. If any tests fail:
+
+1. Analyze the root cause
+2. Fix the issue in the source code
+3. Run tests again to verify the fix
+4. Report what you changed
+
+Do NOT commit changes. Just fix and verify.
+```
+
+## Customizing the Analysis
+
+### Focus on Specific Test Types
+
+**Unit tests only:**
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip
+Run only unit tests (npm run test:unit).
+Report pass/fail counts and analyze failures.
+```
+
+**Integration tests with setup:**
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip
+Run integration tests:
+1. Start docker-compose services
+2. Wait for services to be healthy
+3. Run npm run test:integration
+4. Stop services when done
+
+Analyze any failures.
+```
+
+### Performance Testing
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip
+Run performance tests:
+1. Execute npm run test:perf
+2. Compare results to previous baseline in perf-baseline.json
+3. Flag any regressions >10%
+4. Identify the slowest tests
+```
+
+### Coverage Analysis
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip
+Run tests with coverage:
+1. Execute npm run test:coverage
+2. Report overall coverage percentage
+3. List files with <80% coverage
+4. Suggest priority areas for new tests
+```
+
+## Combining with Live Output
+
+For long test suites, add `--live` to see progress:
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip --live
+Run the test suite. Print a status update after each test file completes.
+Finally, report pass/fail counts and analyze failures.
+```
+
+Now you'll see updates as tests run instead of waiting for everything to complete.
+
+## Security Best Practices
+
+### Use Granular Permissions
+
+Instead of `--skip`, specify exactly what's allowed:
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --allowedTools 'Bash(npm test)' 'Read'
+Run the test suite. Report results but do not modify any files.
+```
+
+This prevents accidental modifications even if your prompt changes.
+
+### CI/CD Sandboxing
+
+In CI/CD, run inside containers:
+
+```yaml
+test:
+  image: node:20
+  script:
+    - ai --skip test-script.md
+```
+
+If the AI does something unexpected, it only affects the container.
+
+### Limit Test Commands
+
+```bash
+--allowedTools 'Bash(npm test)' 'Bash(pytest)' 'Read'
+```
+
+Explicitly list which test commands are allowed.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Live Streaming" icon="tower-broadcast" href="/examples/live-streaming">
+    See test progress in real-time
+  </Card>
+  <Card title="CI/CD Guide" icon="gear" href="/examples/ci-cd">
+    Complete CI/CD integration patterns
+  </Card>
+  <Card title="Code Review" icon="magnifying-glass-chart" href="/examples/code-review">
+    Automated code review workflows
+  </Card>
+  <Card title="Security" icon="shield" href="/security">
+    Security best practices for automation
+  </Card>
+</CardGroup>

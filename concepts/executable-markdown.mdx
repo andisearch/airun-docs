@@ -1,0 +1,281 @@
+---
+title: "Executable Markdown"
+description: "Turn markdown files into AI-powered scripts with shebang support"
+icon: "file-code"
+---
+
+Andi AIRun makes markdown files executable using Unix shebang syntax. Add a shebang line to any markdown file, make it executable, and run it directly as a command.
+
+## How Shebang Scripts Work
+
+A shebang (`#!`) at the start of a file tells the operating system which interpreter to use. AIRun uses `#!/usr/bin/env ai` to run markdown files as AI prompts:
+
+```markdown
+#!/usr/bin/env ai
+Analyze this codebase and summarize the architecture.
+```
+
+**Make it executable and run:**
+
+```bash
+chmod +x task.md
+./task.md
+```
+
+The AI reads the prompt from the file and executes it in your current directory, just like running `ai task.md`.
+
+## The `-S` Flag Requirement
+
+Standard `env` only accepts **one argument**. If you want to pass flags to `ai` in your shebang, you must use `env -S` to split the string into multiple arguments:
+
+<CodeGroup>
+```markdown Works - no flags
+#!/usr/bin/env ai
+Summarize this project.
+```
+
+```markdown Works - with -S flag
+#!/usr/bin/env -S ai --aws --opus
+Analyze this code using AWS Bedrock with Opus.
+```
+
+```markdown FAILS - missing -S
+#!/usr/bin/env ai --aws --opus
+# Error: env treats "ai --aws --opus" as a single command
+```
+</CodeGroup>
+
+<Tip>
+Always use `#!/usr/bin/env -S ai` when your shebang includes flags like `--aws`, `--skip`, or `--live`.
+</Tip>
+
+## Shebang Examples from the Repository
+
+### Basic Hello World
+
+From `examples/hello.md`:
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Say hello and briefly explain what you can do.
+```
+
+The `--haiku` flag selects a fast, cost-effective model for simple tasks.
+
+### Code Analysis
+
+From `examples/analyze-code.md`:
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip
+Summarize the architecture of this codebase. List the main entry points,
+key modules, and how data flows through the system.
+```
+
+- `--sonnet`: Balanced model for code analysis
+- `--skip`: Shortcut for `--dangerously-skip-permissions` — allows the AI to read files without prompting
+
+### Live Streaming Report
+
+From `examples/live-report.md`:
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip --live
+Explore this repository and write a short summary of what it does,
+its key features, and how to get started. Print your findings as you go.
+Finally, generate a concise report in markdown format.
+```
+
+The `--live` flag streams output in real-time as the AI works, showing progress incrementally.
+
+### Test Automation
+
+From `examples/run-tests.md`:
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip
+Run the test suite for this project. Report which tests passed and which
+failed. If any tests fail, explain the root cause.
+```
+
+### Stdin Processing
+
+From `examples/analyze-stdin.md`:
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Analyze the data provided on stdin. Summarize the key points, highlight
+anything unusual, and suggest next steps.
+```
+
+Run with piped input:
+
+```bash
+cat data.json | ./analyze-stdin.md
+```
+
+### Script with Variables
+
+From `examples/summarize-topic.md`:
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+---
+vars:
+  topic: "machine learning"
+  style: casual
+  length: short
+---
+Write a {{length}} summary of {{topic}} in a {{style}} tone.
+```
+
+Override variables from the command line:
+
+```bash
+./summarize-topic.md --topic "AI safety" --style formal --length "detailed"
+```
+
+## Permission Modes for Automation
+
+**Read-only scripts** (default) can analyze code but won't modify anything:
+
+```markdown
+#!/usr/bin/env ai
+Analyze the test coverage in this codebase.
+```
+
+**Automation scripts** that need to write files or run commands require permission flags:
+
+<CodeGroup>
+```markdown --skip (common)
+#!/usr/bin/env -S ai --skip
+Run the test suite and fix any failing tests.
+```
+
+```markdown --bypass (composable)
+#!/usr/bin/env -S ai --bypass
+Run the linter and auto-fix all issues.
+```
+
+```markdown --allowedTools (granular)
+#!/usr/bin/env -S ai --allowedTools 'Bash(npm test)' 'Read'
+Run tests and report results. Do not modify files.
+```
+</CodeGroup>
+
+<Warning>
+`--skip` and `--bypass` give the AI full system access. Only run trusted scripts in trusted directories. For granular control, use `--allowedTools` to specify exactly which operations are allowed.
+</Warning>
+
+## Flag Precedence
+
+When you run a script, flags are resolved in this order (highest priority first):
+
+| Priority | Source | Example |
+|----------|--------|---------|
+| **1 - Highest** | CLI flags | `ai --aws --opus script.md` |
+| **2** | Shebang flags | `#!/usr/bin/env -S ai --ollama --low` |
+| **3** | Saved defaults | `ai --aws --opus --set-default` |
+| **4 - Lowest** | Auto-detection | Current Claude subscription |
+
+**Example precedence in action:**
+
+Given a script with this shebang:
+
+```markdown
+#!/usr/bin/env -S ai --ollama --low
+Analyze this code.
+```
+
+```bash
+./script.md              # Uses Ollama (shebang)
+ai script.md             # Uses Ollama (shebang)
+ai --aws script.md       # Uses AWS (CLI overrides shebang)
+```
+
+If you've also run `ai --vertex --set-default`:
+
+```bash
+ai script.md             # Still uses Ollama (shebang beats saved default)
+ai --resume              # Uses Vertex (no script, so default applies)
+```
+
+<Info>
+CLI flags always override shebang flags, and shebang flags always override saved defaults. This lets you keep scripts with sensible defaults while overriding them when needed.
+</Info>
+
+## Passthrough Flags
+
+AIRun handles its own flags (`--aws`, `--opus`, `--live`, `--skip`, etc.) and passes unrecognized flags directly to Claude Code:
+
+```markdown
+#!/usr/bin/env -S ai --skip --chrome --max-turns 10
+Navigate to the app and verify the login flow works.
+```
+
+- `--skip`: AIRun flag (permission mode)
+- `--chrome`: Claude Code flag (browser automation)
+- `--max-turns 10`: Claude Code flag (limit iterations)
+
+## Running Scripts
+
+There are three ways to run executable markdown:
+
+<Tabs>
+  <Tab title="Direct Execution">
+    ```bash
+    chmod +x script.md
+    ./script.md
+    ```
+    Uses shebang flags exactly as written.
+  </Tab>
+  
+  <Tab title="Via ai Command">
+    ```bash
+    ai script.md
+    ai --aws script.md      # Override provider
+    ```
+    CLI flags override shebang flags.
+  </Tab>
+  
+  <Tab title="Piped Execution">
+    ```bash
+    cat script.md | ai
+    curl -fsSL https://example.com/script.md | ai
+    ```
+    Shebang flags are still honored even when piped.
+  </Tab>
+</Tabs>
+
+## Combining with Other Features
+
+Shebang scripts work seamlessly with other AIRun features:
+
+**Provider switching:**
+```markdown
+#!/usr/bin/env -S ai --aws --opus
+```
+
+**Live streaming:**
+```markdown
+#!/usr/bin/env -S ai --live --skip
+```
+
+**Agent teams:**
+```markdown
+#!/usr/bin/env -S ai --team --opus
+```
+
+**Custom models:**
+```markdown
+#!/usr/bin/env -S ai --ollama --model qwen3-coder
+```
+
+<CardGroup cols={2}>
+  <Card title="Unix Pipes" icon="pipe" href="/concepts/unix-pipes">
+    Chain scripts together and process data streams
+  </Card>
+  <Card title="Provider Switching" icon="arrows-rotate" href="/concepts/provider-switching">
+    Switch between cloud providers and models
+  </Card>
+</CardGroup>

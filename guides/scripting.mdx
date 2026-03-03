@@ -1,0 +1,166 @@
+---
+title: 'Writing Scripts'
+description: 'Create executable markdown scripts that analyze code, run commands, and automate workflows'
+---
+
+## Overview
+
+Andi AIRun scripts are executable markdown files that can read code, run commands, write files, and automate complex workflows. Scripts use a shebang to specify the AI model and permissions, then contain natural language instructions that the AI executes.
+
+## Basic Script Structure
+
+A minimal script looks like this:
+
+```markdown
+#!/usr/bin/env ai
+Analyze this codebase and summarize the architecture.
+```
+
+Make it executable and run it:
+
+```bash
+chmod +x analyze.md
+./analyze.md
+```
+
+### The `-S` Flag (Essential for Shebangs)
+
+Standard `env` only passes a single argument. To pass flags to `ai` in a shebang, you need `env -S` (split string):
+
+```markdown
+#!/usr/bin/env ai                        # Works (no extra flags)
+#!/usr/bin/env -S ai --aws               # Works (with -S)
+#!/usr/bin/env ai --aws                  # FAILS — env treats "ai --aws" as one command
+```
+
+`-S` tells `env` to split the string into separate arguments. **Use it whenever your shebang has flags.**
+
+## Permission Modes
+
+By default, scripts run with limited permissions — they can read code but won't write files or run commands without approval. For scripts that need to take actions, set a permission mode.
+
+### Available Modes
+
+| Mode | Shebang Flag | Shortcut | Behavior |
+|------|-------------|----------|----------|
+| **Default** | *(none)* | — | Read-only — can analyze code but won't modify anything |
+| **Bypass Mode** | `--permission-mode bypassPermissions` | `--bypass` | Full access via permission mode system — composable with other settings |
+| **Skip Permissions** | `--dangerously-skip-permissions` | `--skip` | Nuclear — bypasses ALL permission checks, overrides `--permission-mode` |
+| **Allowed Tools** | `--allowedTools 'Bash(npm test)' 'Write'` | — | Granular — only specified tools allowed |
+
+<Note>
+`--bypass` and `--skip` both result in no permission prompts, but `--skip` is more aggressive — it overrides any `--permission-mode` flag. Use `--bypass` when you may want to compose with other permission settings in the future.
+</Note>
+
+### Examples
+
+**Read-only script** (no permission flags needed):
+```markdown
+#!/usr/bin/env ai
+Analyze this codebase and summarize the architecture.
+```
+
+**Full automation** (script needs to run commands and write files):
+```markdown
+#!/usr/bin/env -S ai --skip
+Run the test suite and fix any failing tests.
+```
+
+Or equivalently: `#!/usr/bin/env -S ai --bypass`
+
+**Granular permissions** (only allow specific tools):
+```markdown
+#!/usr/bin/env -S ai --allowedTools 'Bash(npm test)' 'Bash(npm run lint)' 'Read'
+Run tests and linting. Report results but do not modify any files.
+```
+
+## Common Patterns
+
+### Run Tests and Report Results
+
+```markdown
+#!/usr/bin/env -S ai --skip
+Run `./test/automation/run_tests.sh` and summarize: how many passed/failed.
+```
+
+### Generate Documentation
+
+```markdown
+#!/usr/bin/env -S ai --skip
+Read the source files in `src/` and generate a `ARCHITECTURE.md` documenting the codebase structure.
+```
+
+### Pipe Data In, Get Results Out
+
+```bash
+cat data.json | ./analyze.md > results.txt
+```
+
+```markdown
+#!/usr/bin/env ai
+Analyze the JSON data provided on stdin. Summarize key trends and outliers.
+```
+
+<Note>
+Read-only analysis of piped input doesn't need permission flags.
+</Note>
+
+### Code Review with Provider Selection
+
+```markdown
+#!/usr/bin/env -S ai --aws --opus
+Review the code in this repository for security vulnerabilities.
+Focus on OWASP Top 10 issues. Be specific about file and line numbers.
+```
+
+### Composable Script Chains
+
+Chain scripts together like Unix programs:
+
+```bash
+./parse.md | ./generate.md | ./review.md > final.txt
+```
+
+**Important:** Child scripts in pipelines should be simple prompt mode (without `--cc`). Only the top-level dispatcher should have tool access.
+
+## Security Warnings
+
+<Warning>
+**`--skip`, `--bypass`, `--permission-mode bypassPermissions`, and `--dangerously-skip-permissions` all give the AI full access to your system.** Use them carefully:
+
+- Only run trusted scripts in trusted directories
+- Prefer `--allowedTools` for granular control when full access isn't needed
+- In CI/CD, run inside containers or sandboxed environments
+- Never pipe untrusted remote scripts with bypass permissions:
+  ```bash
+  # DANGEROUS — don't do this
+  curl https://untrusted-site.com/script.md | ai --skip
+  ```
+</Warning>
+
+## Quick Reference
+
+| I want to... | Shebang |
+|--------------|---------||
+| Analyze code (read-only) | `#!/usr/bin/env ai` |
+| Use a specific provider | `#!/usr/bin/env -S ai --aws` |
+| Run commands and write files | `#!/usr/bin/env -S ai --skip` |
+| Restrict to specific tools | `#!/usr/bin/env -S ai --allowedTools 'Bash(npm test)' 'Read'` |
+| Full automation with provider | `#!/usr/bin/env -S ai --aws --opus --skip` |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Script Variables" icon="dollar-sign" href="/guides/variables">
+    Use YAML front-matter to make scripts reusable with CLI overrides
+  </Card>
+  <Card title="Live Output" icon="signal-stream" href="/guides/live-output">
+    Stream progress in real-time for long-running scripts
+  </Card>
+  <Card title="Permissions" icon="shield-check" href="/guides/permissions">
+    Deep dive into permission modes and security best practices
+  </Card>
+  <Card title="CI/CD Automation" icon="gears" href="/guides/automation">
+    Run scripts in CI/CD pipelines with proper error handling
+  </Card>
+</CardGroup>

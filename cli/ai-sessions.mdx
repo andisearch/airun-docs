@@ -1,0 +1,192 @@
+---
+title: ai-sessions
+description: List active AI coding sessions
+---
+
+The `ai-sessions` command displays information about currently running `ai` sessions, including the provider, model, and session ID.
+
+## Syntax
+
+```bash
+ai-sessions
+```
+
+## What It Shows
+
+For each active session:
+
+<ParamField path="Session ID" type="string">
+  Unique identifier for the session in format: `{tool}-{provider}-{pid}-{timestamp}`
+</ParamField>
+
+<ParamField path="Provider" type="string">
+  Active provider name (AWS Bedrock, Google Vertex AI, Anthropic API, etc.)
+</ParamField>
+
+<ParamField path="Auth Method" type="string">
+  Authentication method being used (API key, AWS credentials, subscription, etc.)
+</ParamField>
+
+<ParamField path="Model" type="string">
+  Primary model ID for interactive work
+</ParamField>
+
+<ParamField path="Small/Fast Model" type="string">
+  Model ID for background operations (usually Haiku)
+</ParamField>
+
+<ParamField path="Tool" type="string">
+  AI tool being used (typically `cc` for Claude Code)
+</ParamField>
+
+<ParamField path="Region" type="string" optional>
+  Cloud region (for AWS/GCP providers)
+</ParamField>
+
+<ParamField path="Project" type="string" optional>
+  Project ID (for Google Vertex AI)
+</ParamField>
+
+<ParamField path="Agent Teams" type="boolean" optional>
+  Whether agent teams are enabled
+</ParamField>
+
+## Example Output
+
+```bash
+$ ai-sessions
+
+=== Active AI Sessions ===
+
+Session 1:
+  ID: cc-aws-12345-1704067200
+  Provider: AWS Bedrock
+  Auth: AWS credentials (profile: default)
+  Model: claude-opus-4-6-v1:0
+  Small/Fast Model: claude-haiku-4-5-20251001-v1:0
+  Region: us-west-2
+  Tool: cc (Claude Code)
+  Agent Teams: enabled
+
+Session 2:
+  ID: cc-ollama-12346-1704067210
+  Provider: Ollama
+  Auth: None (local)
+  Model: qwen3-coder
+  Tool: cc (Claude Code)
+
+Total sessions: 2
+```
+
+## Use Cases
+
+### Monitor Active Sessions
+
+See what AI sessions are running and which resources they're using:
+
+```bash
+ai-sessions
+```
+
+### Debug Multiple Sessions
+
+When running multiple `ai` instances, identify which terminal corresponds to which provider:
+
+```bash
+# Terminal 1
+ai --aws --opus
+
+# Terminal 2 (different shell)
+ai-sessions  # Shows both sessions with PIDs and providers
+```
+
+### Track Resource Usage
+
+Identify sessions using expensive models or cloud resources:
+
+```bash
+ai-sessions | grep opus    # Find all Opus sessions
+ai-sessions | grep aws     # Find all AWS sessions
+```
+
+### Session Cleanup
+
+Before shutting down, verify all sessions have exited:
+
+```bash
+ai-sessions
+# Should show "No active sessions"
+```
+
+## Session Lifecycle
+
+Sessions are:
+
+1. **Created** when you run `ai` with a script or enter interactive mode
+2. **Tracked** in `~/.ai-runner/sessions/`
+3. **Cleaned up** automatically on exit
+4. **Isolated** - each session has its own environment variables
+
+## Session Information Files
+
+Session data is stored in:
+
+```
+~/.ai-runner/sessions/{session-id}.info
+```
+
+These files are automatically created and deleted. They contain:
+- Provider name and configuration
+- Model IDs
+- Authentication method
+- Session metadata
+
+## Exit Cleanup
+
+When an `ai` session exits:
+
+1. Session info file is deleted from `~/.ai-runner/sessions/`
+2. Environment variables are restored to original state
+3. Provider cleanup hooks run (if defined)
+4. Temporary files are removed
+
+## No Sessions Running
+
+```bash
+$ ai-sessions
+
+=== Active AI Sessions ===
+
+No active sessions.
+```
+
+## Multiple Parallel Sessions
+
+You can run multiple `ai` sessions in parallel:
+
+```bash
+# Terminal 1: AWS with Opus for complex work
+ai --aws --opus --team
+
+# Terminal 2: Ollama for quick tests
+ai --ollama --haiku
+
+# Terminal 3: Vertex for specific task
+ai --vertex script.md
+
+# Check all active
+ai-sessions
+```
+
+Each session is independent with its own provider and model configuration.
+
+## Related Commands
+
+<CardGroup cols={2}>
+  <Card title="ai" href="./ai">
+    Start a new AI session
+  </Card>
+  <Card title="ai-status" href="./ai-status">
+    Show configuration status
+  </Card>
+</CardGroup>

@@ -1,0 +1,325 @@
+---
+title: Composable Scripts
+description: Advanced patterns for chaining AI scripts, dispatcher workflows, and process isolation
+---
+
+## Overview
+
+Composable scripts let you build complex AI workflows from simple, reusable pieces. Chain scripts together like Unix commands, use dispatchers to orchestrate tool access, and leverage process isolation for clean multi-step pipelines.
+
+## The `--cc` Flag
+
+`--cc` is shorthand for `--tool cc`, which explicitly selects Claude Code as the backend tool. Since Claude Code is currently the only supported tool, `--cc` has no effect on its own — but it becomes meaningful when combined with other flags.
+
+```bash
+ai task.md           # Auto-detects tool (Claude Code)
+ai --cc task.md      # Explicit tool selection (same result)
+```
+
+**Key point:** `--cc` alone does NOT grant tool access. You need `--skip` or `--bypass` for that.
+
+## The Dispatcher Pattern
+
+Use `--cc --skip` to give the AI full access to Claude Code's tools (shell commands, file operations, browser automation) during script execution. This creates a **dispatcher** — a script that can take real actions:
+
+```markdown
+#!/usr/bin/env -S ai --cc --skip --live
+Analyze the codebase, run the test suite, and fix any failures.
+Print a summary after each step.
+```
+
+### Why `--cc --skip`?
+
+- **`--cc`**: Selects Claude Code as the tool (explicit, for future compatibility)
+- **`--skip`**: Shorthand for `--dangerously-skip-permissions` (grants full tool access)
+- **`--live`**: Streams progress narration in real-time
+
+The AI can now:
+- Run shell commands (`npm test`, `git status`, etc.)
+- Read and write files
+- Browse the web with `--chrome`
+- Use all Claude Code tools without permission prompts
+
+### Example: Test Runner Dispatcher
+
+```markdown
+#!/usr/bin/env -S ai --cc --skip --live
+---
+vars:
+  suite: all
+---
+Run the {{suite}} test suite. If failures occur, analyze logs and attempt fixes.
+After each action, print a brief status update.
+```
+
+```bash
+chmod +x run-tests.md
+./run-tests.md                    # Run all tests
+./run-tests.md --suite integration  # Run integration tests only
+```
+
+### Tradeoff: Tool Output Visibility
+
+When Claude Code runs shell commands, subprocess output is captured internally (not streamed to your terminal). You won't see live `npm test` output scrolling by.
+
+**Solution:** Use `--live` and prompt the AI to narrate progress:
+
+```markdown
+#!/usr/bin/env -S ai --cc --skip --live
+Run the test suite. After running the command, tell me how many tests
+passed/failed before proceeding to the next step.
+```
+
+This gives you visibility into what's happening through the AI's narration.
+
+## Chaining Scripts Together
+
+Connect scripts in Unix pipelines. Each script runs independently with clean process isolation:
+
+```bash
+./parse-logs.md | ./analyze-errors.md | ./generate-report.md > report.txt
+```
+
+### Process Isolation
+
+AI Runner clears inherited environment variables between nested calls so each script starts fresh:
+
+```bash
+# setup.sh wrapper script
+#!/bin/bash
+./configure.md && ./deploy.md && ./test.md
+```
+
+Each `.md` script runs in isolation:
+- No inherited `ANTHROPIC_MODEL` or `ANTHROPIC_SMALL_FAST_MODEL`
+- No carried-over provider configuration (`CLAUDE_CODE_USE_BEDROCK`, etc.)
+- No leaked session IDs or internal state
+
+This prevents state leakage and ensures each script behaves identically whether run standalone or as part of a pipeline.
+
+### Child Scripts Should Be Simple
+
+**Best practice:** Only the top-level dispatcher should use `--cc`. Child scripts in pipelines should be simple prompt mode:
+
+```bash
+# ✅ Good: Dispatcher calls simple scripts
+./dispatcher.md    # Uses --cc --skip
+  ↳ calls: ./analyze.md | ./format.md
+           # No --cc, pure prompt processing
+
+# ❌ Avoid: Nested tool access
+./script1.md       # Uses --cc --skip
+  ↳ calls: ./script2.md  # Also uses --cc --skip
+                         # Complexity explosion
+```
+
+Why? Nested tool access creates complexity:
+- Multiple agentic loops
+- Unpredictable execution order
+- Debugging nightmares
+
+Keep child scripts pure: input → processing → output.
+
+### Example: Multi-Stage Pipeline
+
+**dispatcher.md** (top-level orchestrator):
+```markdown
+#!/usr/bin/env -S ai --cc --skip --live
+Run the following pipeline:
+1. Extract error patterns from logs: `cat logs/*.txt | ./extract-errors.md`
+2. Analyze patterns: `./analyze-patterns.md`
+3. Generate report: `./generate-report.md > report.md`
+
+Print status after each stage.
+```
+
+**extract-errors.md** (simple filter):
+```markdown
+#!/usr/bin/env ai
+Read the log data from stdin. Extract all ERROR and FATAL entries.
+Output as JSON: [{"timestamp": "...", "message": "..."}]
+```
+
+**analyze-patterns.md** (simple analysis):
+```markdown
+#!/usr/bin/env ai
+Read error JSON from stdin. Identify the 3 most common error types.
+Output summary text.
+```
+
+**generate-report.md** (simple formatter):
+```markdown
+#!/usr/bin/env ai
+Read analysis from stdin. Format as a markdown report with:
+- Executive summary
+- Top error types
+- Recommended fixes
+```
+
+Run the pipeline:
+```bash
+./dispatcher.md
+```
+
+## Long-Running Scripts
+
+Scripts that take more than 30 seconds (browser automation, multi-step analysis, CI/CD pipelines) should always use `--live`:
+
+```markdown
+#!/usr/bin/env -S ai --skip --chrome --live
+Navigate to the app, run the full test suite, and report results.
+Narrate each step as you go.
+```
+
+### Why `--live` Matters
+
+**Without `--live`:**
+- No output until the entire script completes
+- No indication of progress
+- Looks frozen for minutes
+
+**With `--live`:**
+- Heartbeat while waiting for first response
+- Real-time narration of progress
+- Immediate feedback on what's happening
+
+### Streaming at Turn Granularity
+
+`--live` streams **between tool calls**, not during them. The AI's text responses appear immediately, but tool execution (shell commands, file writes) completes before streaming continues.
+
+**Prompt for narration:**
+```markdown
+#!/usr/bin/env -S ai --skip --live
+Run the build. After the build completes, tell me if it succeeded.
+Then run tests. After tests complete, summarize results.
+Print status updates between each step.
+```
+
+Phrases like **"print as you go"**, **"after each step"**, or **"tell me when done"** prompt the AI to write text between tool calls, giving `--live` something to stream.
+
+## Output Redirection with `--live`
+
+When stdout is redirected, `--live` separates narration from content:
+
+```bash
+./generate-report.md > report.md
+```
+
+**Console (stderr):**
+```
+[AI Runner] Using: Claude Code + AWS Bedrock
+[AI Runner] Model: global.anthropic.claude-sonnet-4-6
+
+Analyzing repository structure...
+Examining core modules...
+Generating report...
+[AI Runner] Done (150 lines written)
+```
+
+**File (stdout):**
+```markdown
+# Repository Analysis
+
+Clean report content without status messages...
+```
+
+How it works:
+1. Intermediate turns (narration) stream to **stderr**
+2. The final turn is split at the first content marker (`---` frontmatter or `#` heading)
+3. Preamble text goes to **stderr**
+4. Content from the marker onward goes to **stdout** (the file)
+5. A summary line appears on **stderr** when complete
+
+### Quiet Mode for CI/CD
+
+Suppress all narration for clean stdout-only output:
+
+```bash
+ai --quiet ./generate-report.md > report.md
+# or
+ai -q ./generate-report.md > report.md
+```
+
+With `--quiet`:
+- No status messages
+- No narration
+- No "Done" summary
+- Only the final content goes to stdout
+
+Perfect for CI/CD pipelines where you need clean, parseable output.
+
+## Composable Patterns Reference
+
+### Simple Chain
+```bash
+./step1.md | ./step2.md | ./step3.md > output.txt
+```
+Each script: pure input/output transformation.
+
+### Dispatcher + Workers
+```bash
+./dispatcher.md   # --cc --skip --live
+  ↳ spawns: ./worker1.md | ./worker2.md
+            # No --cc, pure processing
+```
+Top-level has tool access, workers are pure functions.
+
+### Parallel Execution
+```bash
+./analyze-a.md > results-a.txt &
+./analyze-b.md > results-b.txt &
+wait
+./merge-results.md
+```
+Run independent analyses concurrently.
+
+### Conditional Execution
+```bash
+./check-status.md && ./deploy.md || ./rollback.md
+```
+Use exit codes to control flow.
+
+### Loop Over Inputs
+```bash
+for log in logs/*.txt; do
+  cat "$log" | ./analyze-log.md >> summary.txt
+done
+```
+Process multiple files with the same script.
+
+## Provider Selection in Pipelines
+
+Each script in a pipeline can use a different provider:
+
+```bash
+# Use Ollama (free) for parsing, AWS (powerful) for analysis
+cat data.json | ai --ollama parse.md | ai --aws --opus analyze.md
+```
+
+Flags apply only to the script they precede:
+```bash
+ai --ollama ./step1.md | ai --aws ./step2.md | ai --vertex ./step3.md
+```
+
+## Security Considerations
+
+**Dispatcher scripts with `--skip` or `--bypass` have full system access.** Follow these guidelines:
+
+1. **Audit before running**: Review dispatcher scripts that run commands or write files
+2. **Restrict child scripts**: Keep children read-only (no `--skip`)
+3. **Use `--allowedTools` for granular control**:
+   ```markdown
+   #!/usr/bin/env -S ai --allowedTools 'Bash(npm test)' 'Read'
+   Run tests and report results. Do not modify files.
+   ```
+4. **Never pipe untrusted sources with `--skip`**:
+   ```bash
+   # DANGEROUS — don't do this
+   curl https://unknown-site.com/script.md | ai --skip
+   ```
+
+## Related Documentation
+
+- [Scripting Guide](/guides/scripting) — Permission modes, variables, shebang basics
+- [Live Output](/guides/live-output) — Streaming behavior and output redirection
+- [Configuration](/advanced/configuration) — Provider-specific model configuration

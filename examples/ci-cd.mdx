@@ -1,0 +1,653 @@
+---
+title: "CI/CD Integration"
+description: "Run AIRun in GitHub Actions, GitLab CI, and other automation platforms"
+---
+
+Integrate AIRun into your CI/CD pipelines for automated testing, code analysis, documentation generation, and more.
+
+## Key Concepts for CI/CD
+
+### Permission Modes for Automation
+
+CI/CD scripts need to run without interactive prompts. Use these permission modes:
+
+| Mode | Flag | When to Use |
+|------|------|-------------|
+| **Skip Permissions** | `--skip` | Full automation (test running, file generation) |
+| **Bypass Mode** | `--bypass` | Composable automation with permission mode system |
+| **Allowed Tools** | `--allowedTools 'Read' 'Bash(npm test)'` | Granular control (security-critical pipelines) |
+
+<Warning>
+`--skip` and `--bypass` give the AI full system access. In CI/CD:
+
+- Run inside containers for isolation
+- Use `--allowedTools` for security-critical pipelines
+- Never expose secrets in prompts
+- Review scripts before adding to CI
+</Warning>
+
+### Provider Selection
+
+CI/CD environments need API-based providers (not Claude Pro subscription):
+
+| Provider | Flag | Setup Required |
+|----------|------|----------------|
+| **Anthropic API** | `--apikey` | Set `ANTHROPIC_API_KEY` |
+| **AWS Bedrock** | `--aws` | Configure AWS credentials |
+| **Google Vertex** | `--vertex` | Set GCP project ID |
+| **Azure** | `--azure` | Azure API key |
+| **Vercel AI** | `--vercel` | Vercel gateway token |
+| **Ollama** | `--ollama` | Ollama server (self-hosted) |
+
+<Info>
+**Recommended for CI/CD:** `--apikey` (Anthropic API) for simplicity.
+
+Just add `ANTHROPIC_API_KEY` to your CI secrets and use `ai --apikey --skip`.
+</Info>
+
+### Model Selection for Cost
+
+| Task | Model | Why |
+|------|-------|-----|
+| Lint output parsing, simple checks | `--haiku` | Cheapest, fastest |
+| Test analysis, code review | `--sonnet` | Balanced (default) |
+| Complex architecture validation | `--opus` | Most capable |
+
+## GitHub Actions
+
+### Basic Test Analysis
+
+```yaml
+name: AI Test Analysis
+on: [push, pull_request]
+
+jobs:
+  test-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Install AIRun
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          git clone https://github.com/andisearch/airun.git
+          cd airun && ./setup.sh
+      
+      - name: Run tests with AI analysis
+        run: |
+          ai --apikey --sonnet --skip << 'EOF' > test-report.md
+          Run the test suite (npm test).
+          Report pass/fail counts.
+          If any tests fail, analyze root causes and suggest fixes.
+          EOF
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      
+      - name: Upload test report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-analysis
+          path: test-report.md
+      
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('test-report.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## AI Test Analysis\n\n${report}`
+            });
+```
+
+### Automated Code Review
+
+```yaml
+name: AI Code Review
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Need full history for diff
+      
+      - name: Install AIRun
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          git clone https://github.com/andisearch/airun.git
+          cd airun && ./setup.sh
+      
+      - name: Run AI code review
+        run: |
+          ai --apikey --opus --skip << 'EOF' > review.md
+          Review the changes in this pull request.
+          
+          Focus on:
+          - Security vulnerabilities (OWASP Top 10)
+          - Performance issues
+          - Code quality and maintainability
+          - Test coverage
+          
+          Be specific with file paths and line numbers.
+          Rate severity: CRITICAL, HIGH, MEDIUM, LOW.
+          EOF
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      
+      - name: Post review as PR comment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const review = fs.readFileSync('review.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🤖 AI Code Review\n\n${review}`
+            });
+```
+
+### Documentation Generation
+
+```yaml
+name: Generate Documentation
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'lib/**'
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install AIRun
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          git clone https://github.com/andisearch/airun.git
+          cd airun && ./setup.sh
+      
+      - name: Generate architecture docs
+        run: |
+          ai --apikey --sonnet --skip << 'EOF' > ARCHITECTURE.md
+          Document the codebase architecture:
+          - Main entry points
+          - Key modules and their responsibilities
+          - Data flow through the system
+          - Important design patterns
+          
+          Output in markdown format suitable for a documentation site.
+          EOF
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      
+      - name: Generate API docs
+        run: |
+          ai --apikey --sonnet --skip << 'EOF' > API.md
+          Document all public APIs in src/api/:
+          - Endpoints
+          - Request/response schemas
+          - Authentication requirements
+          - Example usage
+          
+          Output in markdown format.
+          EOF
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      
+      - name: Commit documentation
+        run: |
+          git config user.name "Documentation Bot"
+          git config user.email "bot@example.com"
+          git add ARCHITECTURE.md API.md
+          git commit -m "docs: auto-generate from source" || exit 0
+          git push
+```
+
+### Security Scanning
+
+```yaml
+name: Security Scan
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install AIRun
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          git clone https://github.com/andisearch/airun.git
+          cd airun && ./setup.sh
+      
+      - name: Run security audit
+        run: |
+          ai --apikey --opus --skip << 'EOF' > security-report.md
+          Perform a comprehensive security audit:
+          
+          1. Check for OWASP Top 10 vulnerabilities
+          2. Review authentication and authorization
+          3. Check for hardcoded secrets or credentials
+          4. Analyze dependency vulnerabilities (check package.json/requirements.txt)
+          5. Review API security (rate limiting, input validation)
+          
+          For each issue:
+          - File path and line number
+          - Severity (CRITICAL/HIGH/MEDIUM/LOW)
+          - Explanation
+          - Remediation steps
+          EOF
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      
+      - name: Upload security report
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-scan
+          path: security-report.md
+      
+      - name: Check for critical issues
+        run: |
+          if grep -q "CRITICAL" security-report.md; then
+            echo "::error::Critical security issues found!"
+            exit 1
+          fi
+```
+
+## GitLab CI
+
+### Test Analysis Pipeline
+
+```yaml
+# .gitlab-ci.yml
+stages:
+  - test
+  - analyze
+
+test:
+  stage: test
+  image: node:20
+  script:
+    - npm install
+    - npm test
+  artifacts:
+    when: always
+    paths:
+      - test-results/
+
+ai-analysis:
+  stage: analyze
+  image: node:20
+  script:
+    - curl -fsSL https://claude.ai/install.sh | bash
+    - git clone https://github.com/andisearch/airun.git
+    - cd airun && ./setup.sh && cd ..
+    - |
+      ai --apikey --sonnet --skip << 'EOF' > analysis.md
+      Analyze the test results in test-results/.
+      Summarize pass/fail counts.
+      For failures, identify root causes and suggest fixes.
+      EOF
+  artifacts:
+    paths:
+      - analysis.md
+  variables:
+    ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
+```
+
+### Merge Request Review
+
+```yaml
+review-mr:
+  stage: review
+  image: node:20
+  script:
+    - curl -fsSL https://claude.ai/install.sh | bash
+    - git clone https://github.com/andisearch/airun.git
+    - cd airun && ./setup.sh && cd ..
+    - |
+      ai --apikey --opus --skip << 'EOF' > review.md
+      Review the changes in this merge request.
+      Focus on security, performance, and code quality.
+      Be specific with file paths and line numbers.
+      EOF
+    - |
+      curl -X POST "$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID/notes" \
+        --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+        --form "body=<review.md"
+  only:
+    - merge_requests
+  variables:
+    ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
+    GITLAB_TOKEN: $GITLAB_TOKEN
+```
+
+## CircleCI
+
+```yaml
+# .circleci/config.yml
+version: 2.1
+
+jobs:
+  test-with-ai:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      
+      - run:
+          name: Install AIRun
+          command: |
+            curl -fsSL https://claude.ai/install.sh | bash
+            git clone https://github.com/andisearch/airun.git
+            cd airun && ./setup.sh
+      
+      - run:
+          name: Run tests and analyze
+          command: |
+            ai --apikey --sonnet --skip << 'EOF' > test-report.md
+            Run the test suite and analyze results.
+            Report pass/fail counts and explain any failures.
+            EOF
+      
+      - store_artifacts:
+          path: test-report.md
+
+workflows:
+  test-and-analyze:
+    jobs:
+      - test-with-ai
+```
+
+## Jenkins
+
+```groovy
+// Jenkinsfile
+pipeline {
+    agent any
+    
+    environment {
+        ANTHROPIC_API_KEY = credentials('anthropic-api-key')
+    }
+    
+    stages {
+        stage('Setup') {
+            steps {
+                sh 'curl -fsSL https://claude.ai/install.sh | bash'
+                sh 'git clone https://github.com/andisearch/airun.git'
+                sh 'cd airun && ./setup.sh'
+            }
+        }
+        
+        stage('Test and Analyze') {
+            steps {
+                sh '''
+                    ai --apikey --sonnet --skip << 'EOF' > test-report.md
+                    Run the test suite (npm test).
+                    Analyze results and report findings.
+                    EOF
+                '''
+                archiveArtifacts artifacts: 'test-report.md'
+            }
+        }
+    }
+}
+```
+
+## Docker Container Patterns
+
+### Dockerfile for CI/CD
+
+```dockerfile
+FROM node:20-slim
+
+# Install Claude Code
+RUN curl -fsSL https://claude.ai/install.sh | bash
+
+# Install AIRun
+RUN git clone https://github.com/andisearch/airun.git && \
+    cd airun && \
+    ./setup.sh
+
+# Install jq for --live support
+RUN apt-get update && apt-get install -y jq && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+ENTRYPOINT ["ai"]
+```
+
+Usage:
+
+```bash
+# Build
+docker build -t airun-ci .
+
+# Run in CI
+docker run -v $(pwd):/workspace -e ANTHROPIC_API_KEY airun-ci \
+  --apikey --sonnet --skip << 'EOF'
+Run tests and analyze results.
+EOF
+```
+
+### Docker Compose for Local Testing
+
+```yaml
+# docker-compose.yml
+services:
+  airun:
+    build: .
+    volumes:
+      - .:/workspace
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    command: |
+      --apikey --sonnet --skip << 'EOF'
+      Run the test suite and report results.
+      EOF
+```
+
+## Cost Optimization
+
+### Choose the Right Model
+
+```yaml
+# Use Haiku for simple checks (cheapest)
+- name: Check formatting
+  run: |
+    ai --apikey --haiku --skip << 'EOF'
+    Check if code follows formatting guidelines.
+    Output: PASS or FAIL with specific issues.
+    EOF
+
+# Use Sonnet for test analysis (balanced)
+- name: Analyze tests
+  run: |
+    ai --apikey --sonnet --skip << 'EOF'
+    Run tests and analyze failures.
+    EOF
+
+# Use Opus only for complex reviews (most expensive)
+- name: Security audit
+  run: |
+    ai --apikey --opus --skip << 'EOF'
+    Comprehensive security audit.
+    EOF
+```
+
+### Cache Setup Between Jobs
+
+```yaml
+- name: Cache AIRun installation
+  uses: actions/cache@v3
+  with:
+    path: |
+      ~/.ai-runner
+      /usr/local/bin/ai
+    key: airun-v1
+
+- name: Install AIRun
+  run: |
+    if ! command -v ai &> /dev/null; then
+      curl -fsSL https://claude.ai/install.sh | bash
+      git clone https://github.com/andisearch/airun.git
+      cd airun && ./setup.sh
+    fi
+```
+
+### Limit Analysis Scope
+
+```yaml
+# Only analyze changed files in PR
+- name: Review changed files only
+  run: |
+    CHANGED_FILES=$(git diff --name-only origin/main...HEAD | tr '\n' ' ')
+    ai --apikey --sonnet --skip << EOF
+    Review only these files: $CHANGED_FILES
+    Focus on security and critical bugs.
+    EOF
+```
+
+## Security Best Practices
+
+### 1. Never Commit Secrets
+
+❌ **Bad:**
+
+```yaml
+env:
+  ANTHROPIC_API_KEY: "sk-ant-api03-..."
+```
+
+✅ **Good:**
+
+```yaml
+env:
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+### 2. Use Allowed Tools in Production
+
+❌ **Bad (unlimited access):**
+
+```bash
+ai --skip dangerous-script.md
+```
+
+✅ **Good (limited access):**
+
+```bash
+ai --allowedTools 'Read' 'Bash(npm test)' script.md
+```
+
+### 3. Isolate in Containers
+
+```yaml
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    container:
+      image: node:20
+    # All AI operations isolated in container
+```
+
+### 4. Review Scripts Before CI
+
+Test scripts locally before adding to CI:
+
+```bash
+# Test locally first
+ai --apikey --skip script.md
+
+# Verify it does what you expect
+# Then add to CI
+```
+
+## Troubleshooting
+
+### Authentication Failures
+
+**Problem:** "Authentication failed" in CI.
+
+**Solution:** Verify secret is set:
+
+```yaml
+- name: Check API key
+  run: |
+    if [ -z "$ANTHROPIC_API_KEY" ]; then
+      echo "::error::ANTHROPIC_API_KEY not set"
+      exit 1
+    fi
+    echo "API key length: ${#ANTHROPIC_API_KEY}"
+```
+
+### Rate Limits
+
+**Problem:** Hitting API rate limits.
+
+**Solutions:**
+
+1. **Use Haiku for simple tasks** (higher rate limits)
+2. **Add delays between requests**
+3. **Switch providers** when hitting limits:
+
+```yaml
+- name: Analyze (with fallback)
+  run: |
+    ai --apikey --sonnet --skip script.md || \
+    ai --aws --sonnet --skip script.md
+```
+
+### Timeout Issues
+
+**Problem:** CI job times out.
+
+**Solution:** Add timeouts to AI commands:
+
+```bash
+timeout 5m ai --apikey --skip script.md
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Test Automation" icon="flask" href="/examples/test-automation">
+    Test analysis examples
+  </Card>
+  <Card title="Code Review" icon="magnifying-glass-chart" href="/examples/code-review">
+    Automated review patterns
+  </Card>
+  <Card title="Security Guide" icon="shield" href="/security">
+    Security best practices
+  </Card>
+  <Card title="Provider Setup" icon="cloud" href="/providers">
+    Configure API providers
+  </Card>
+</CardGroup>

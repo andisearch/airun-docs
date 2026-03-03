@@ -1,0 +1,147 @@
+---
+title: "Hello World"
+description: "The simplest AIRun script - your first executable prompt"
+---
+
+The simplest possible AIRun script. This example shows the basic shebang syntax and how to make a markdown file executable.
+
+## The Script
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Say hello and briefly explain what you can do.
+```
+
+<Tip>
+This is the complete script from `examples/hello.md`. It's only 2 lines!
+</Tip>
+
+## How It Works
+
+### The Shebang Line
+
+```bash
+#!/usr/bin/env -S ai --haiku
+```
+
+This line tells your system how to run the file:
+
+- `#!/usr/bin/env` - Standard Unix shebang for finding executables in PATH
+- `-S` - **Essential flag** that allows passing arguments (like `--haiku`) to the command
+- `ai` - The AIRun command
+- `--haiku` - Use the fastest, cheapest model tier (perfect for simple tasks)
+
+<Warning>
+You **must** use `-S` when passing flags in a shebang. Without it, `env` treats `ai --haiku` as a single command name and fails.
+
+**Works:** `#!/usr/bin/env -S ai --haiku`
+
+**Fails:** `#!/usr/bin/env ai --haiku`
+</Warning>
+
+### The Prompt
+
+Everything after the shebang is your prompt:
+
+```
+Say hello and briefly explain what you can do.
+```
+
+No special syntax needed - just write what you want the AI to do.
+
+## Running the Script
+
+### Method 1: Make it executable and run directly
+
+```bash
+# Make the file executable
+chmod +x hello.md
+
+# Run it
+./hello.md
+```
+
+The shebang tells your system to use `ai --haiku` to execute the file.
+
+### Method 2: Run with the ai command
+
+```bash
+# Shebang flags are still honored
+ai hello.md
+```
+
+### Method 3: Override the model
+
+```bash
+# Use Sonnet instead of Haiku (CLI overrides shebang)
+ai --sonnet hello.md
+
+# Use a different provider
+ai --aws --opus hello.md
+```
+
+<Info>
+**Flag precedence:** CLI flags > shebang flags > saved defaults
+
+Running `ai --sonnet hello.md` overrides the `--haiku` in the shebang.
+</Info>
+
+## Why Use Haiku?
+
+This script uses `--haiku` because:
+
+- **Fastest** - Haiku responds in milliseconds
+- **Cheapest** - Lowest cost per token
+- **Sufficient** - Simple text generation doesn't need Opus
+
+**Model selection guide:**
+
+| Task | Model |
+|------|-------|
+| Simple text, greetings, summaries | `--haiku` |
+| Code analysis, test running | `--sonnet` |
+| Complex reasoning, architecture design | `--opus` |
+
+## Creating Your Own
+
+Create a new script:
+
+```bash
+cat > greet.md << 'EOF'
+#!/usr/bin/env -S ai --haiku
+Write a friendly greeting and tell me a fun fact about AI.
+EOF
+
+chmod +x greet.md
+./greet.md
+```
+
+## Read-Only by Default
+
+This script doesn't need any permission flags because it only generates text. It cannot:
+
+- Write files
+- Run commands  
+- Modify your system
+
+For scripts that need to take actions, see:
+
+- [Test Automation](/examples/test-automation) - Using `--skip` for running commands
+- [Code Analysis](/examples/code-analysis) - Read-only analysis without permissions
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Code Analysis" icon="magnifying-glass" href="/examples/code-analysis">
+    Analyze codebases without modifying anything
+  </Card>
+  <Card title="Variables" icon="brackets-curly" href="/examples/variables">
+    Add customizable parameters to scripts
+  </Card>
+  <Card title="Test Automation" icon="flask" href="/examples/test-automation">
+    Run commands and report results
+  </Card>
+  <Card title="Scripting Guide" icon="book" href="/scripting">
+    Complete guide to executable markdown
+  </Card>
+</CardGroup>

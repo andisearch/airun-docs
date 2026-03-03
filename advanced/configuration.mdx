@@ -1,0 +1,474 @@
+---
+title: Advanced Configuration
+description: Model overrides, dual model system, version management, and update checking
+---
+
+## Configuration Files
+
+AI Runner uses a configuration directory at `~/.ai-runner/` (or legacy `~/.claude-switcher/`):
+
+```
+~/.ai-runner/
+├── secrets.sh          # Your API keys and credentials (user-edited)
+├── models.sh           # Model defaults (copied from config/models.sh)
+├── banner.sh           # Startup banner (copied from config/banner.sh)
+└── defaults.sh         # Saved defaults from --set-default
+```
+
+**Key files:**
+- **`secrets.sh`**: User-edited file for API keys and model overrides (never overwritten)
+- **`models.sh`**: System defaults (updated by `setup.sh` when defaults change)
+- **`defaults.sh`**: Persistent provider/model preferences saved with `--set-default`
+
+## Model Overrides in secrets.sh
+
+Override default model identifiers for any provider by adding exports to `~/.ai-runner/secrets.sh`:
+
+```bash
+nano ~/.ai-runner/secrets.sh
+```
+
+### AWS Bedrock
+
+```bash
+# Override AWS models
+export CLAUDE_MODEL_SONNET_AWS="global.anthropic.claude-sonnet-4-6"
+export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-6-v1"
+export CLAUDE_MODEL_HAIKU_AWS="us.anthropic.claude-haiku-4-5-20251001-v1:0"
+
+# Override small/fast model for background operations
+export CLAUDE_SMALL_FAST_MODEL_AWS="us.anthropic.claude-haiku-4-5-20251001-v1:0"
+```
+
+Pin a specific dated version:
+```bash
+export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-6-20260205"
+```
+
+### Google Vertex AI
+
+```bash
+export CLAUDE_MODEL_SONNET_VERTEX="claude-sonnet-4-6"
+export CLAUDE_MODEL_OPUS_VERTEX="claude-opus-4-6"
+export CLAUDE_MODEL_HAIKU_VERTEX="claude-haiku-4-5@20251001"
+
+export CLAUDE_SMALL_FAST_MODEL_VERTEX="claude-haiku-4-5@20251001"
+```
+
+### Anthropic API
+
+```bash
+export CLAUDE_MODEL_SONNET_ANTHROPIC="claude-sonnet-4-6"
+export CLAUDE_MODEL_OPUS_ANTHROPIC="claude-opus-4-6"
+export CLAUDE_MODEL_HAIKU_ANTHROPIC="claude-haiku-4-5"
+
+export CLAUDE_SMALL_FAST_MODEL_ANTHROPIC="claude-haiku-4-5"
+```
+
+### Microsoft Azure
+
+Model names are deployment names from your Azure portal:
+
+```bash
+export CLAUDE_MODEL_SONNET_AZURE="claude-sonnet-4-6"
+export CLAUDE_MODEL_OPUS_AZURE="claude-opus-4-6"
+export CLAUDE_MODEL_HAIKU_AZURE="claude-haiku-4-5"
+
+export CLAUDE_SMALL_FAST_MODEL_AZURE="claude-haiku-4-5"
+```
+
+### Vercel AI Gateway
+
+Use `provider/model` format (dots not dashes in version numbers):
+
+```bash
+export CLAUDE_MODEL_SONNET_VERCEL="anthropic/claude-sonnet-4.6"
+export CLAUDE_MODEL_OPUS_VERCEL="anthropic/claude-opus-4.6"
+export CLAUDE_MODEL_HAIKU_VERCEL="anthropic/claude-haiku-4.5"
+
+export CLAUDE_SMALL_FAST_MODEL_VERCEL="anthropic/claude-haiku-4.5"
+```
+
+Non-Anthropic models:
+```bash
+export CLAUDE_MODEL_SONNET_VERCEL="xai/grok-code-fast-1"
+export CLAUDE_SMALL_FAST_MODEL_VERCEL="xai/grok-code-fast-1"
+```
+
+### Ollama (Local + Cloud)
+
+By default, AI Runner auto-detects available models. Override with:
+
+```bash
+# Local models (requires 24GB+ VRAM)
+export OLLAMA_MODEL_HIGH="qwen3:72b"         # For --opus/--high
+export OLLAMA_MODEL_MID="qwen3-coder"        # For --sonnet/--mid
+export OLLAMA_MODEL_LOW="gemma3"             # For --haiku/--low
+
+# Cloud models (no GPU required, 198K context)
+export OLLAMA_MODEL_HIGH="minimax-m2.5:cloud"  # 80% SWE-bench
+export OLLAMA_MODEL_MID="glm-5:cloud"          # 78% SWE-bench
+export OLLAMA_MODEL_LOW="glm-5:cloud"
+
+# Background model (optional, defaults to same as MID)
+export OLLAMA_SMALL_FAST_MODEL="gemma3"
+```
+
+### LM Studio (Local)
+
+By default, AI Runner uses the first loaded model for all tiers. Override:
+
+```bash
+export LMSTUDIO_HOST="http://localhost:1234"
+export LMSTUDIO_MODEL_HIGH="openai/gpt-oss-20b"
+export LMSTUDIO_MODEL_MID="openai/gpt-oss-20b"
+export LMSTUDIO_MODEL_LOW="ibm/granite-4-micro"
+```
+
+## Dual Model System
+
+Claude Code uses **two models** for optimal performance and cost:
+
+### 1. Primary Model (`ANTHROPIC_MODEL`)
+
+The main model you interact with. Set by your tier flags:
+
+```bash
+ai --opus task.md         # Uses CLAUDE_MODEL_OPUS_<PROVIDER>
+ai --sonnet task.md       # Uses CLAUDE_MODEL_SONNET_<PROVIDER>
+ai --haiku task.md        # Uses CLAUDE_MODEL_HAIKU_<PROVIDER>
+ai --model custom-id      # Uses custom-id directly
+```
+
+Used for:
+- Main conversation
+- Complex reasoning
+- User-facing responses
+
+### 2. Small/Fast Model (`ANTHROPIC_SMALL_FAST_MODEL`)
+
+The background/auxiliary model for lightweight operations. Automatically set based on provider:
+
+```bash
+# From config/models.sh defaults:
+export CLAUDE_SMALL_FAST_MODEL_AWS="${CLAUDE_MODEL_HAIKU_AWS}"
+export CLAUDE_SMALL_FAST_MODEL_VERTEX="${CLAUDE_MODEL_HAIKU_VERTEX}"
+export CLAUDE_SMALL_FAST_MODEL_ANTHROPIC="${CLAUDE_MODEL_HAIKU_ANTHROPIC}"
+# ... etc for each provider
+```
+
+Used for:
+- Sub-agents and teammates (with `--team`)
+- File operations and analysis
+- Quick auxiliary tasks
+- Background work that doesn't need the full model
+
+**Cost savings:** Using Haiku for background operations while running Opus for main work reduces costs without sacrificing quality for complex reasoning.
+
+### How It's Applied
+
+When you run `ai --aws --opus`, the scripts set:
+```bash
+export ANTHROPIC_MODEL="global.anthropic.claude-opus-4-6-v1"          # Primary
+export ANTHROPIC_SMALL_FAST_MODEL="us.anthropic.claude-haiku-4-5-..." # Background
+```
+
+Claude Code automatically uses the appropriate model for each operation.
+
+### Overriding the Small/Fast Model
+
+Customize in `~/.ai-runner/secrets.sh`:
+
+```bash
+# Use Sonnet instead of Haiku for background work
+export CLAUDE_SMALL_FAST_MODEL_AWS="global.anthropic.claude-sonnet-4-6"
+
+# Use same model for both (consistency over cost)
+export CLAUDE_SMALL_FAST_MODEL_AWS="${CLAUDE_MODEL_OPUS_AWS}"
+```
+
+**When to override:**
+- **Agent teams**: Higher-quality teammates with `--team`
+- **Complex file operations**: Better analysis with Sonnet background model
+- **Consistency**: Same model for all operations (disable two-model system)
+
+## Persistent Defaults
+
+Save your preferred provider and model combination:
+
+```bash
+# Set default
+ai --aws --opus --set-default
+
+# Now 'ai' uses AWS + Opus by default
+ai                        # Uses saved defaults
+ai task.md                # Uses saved defaults
+
+# Override saved defaults
+ai --vertex task.md       # Uses Vertex instead
+ai --haiku task.md        # Uses Haiku instead
+
+# Clear saved defaults
+ai --clear-default
+```
+
+**What gets saved** (`~/.ai-runner/defaults.sh`):
+```bash
+AI_DEFAULT_PROVIDER="aws"
+AI_DEFAULT_MODEL_TIER="high"           # From --opus
+AI_DEFAULT_CUSTOM_MODEL=""             # From --model (if used)
+AI_DEFAULT_TEAM_MODE="enabled"         # From --team (if used)
+AI_DEFAULT_TEAMMATE_MODE="tmux"        # From --teammate-mode (if used)
+```
+
+**Precedence** (highest to lowest):
+1. CLI flags: `ai --vertex task.md`
+2. Shebang flags: `#!/usr/bin/env -S ai --aws`
+3. Saved defaults: `--set-default`
+4. Auto-detection: Current Claude subscription
+
+## Model Configuration Files
+
+### `config/models.sh` (System Defaults)
+
+Shipped with AI Runner, defines default model IDs for each provider:
+
+```bash
+# AWS Bedrock defaults
+export CLAUDE_MODEL_SONNET_AWS="global.anthropic.claude-sonnet-4-6"
+export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-6-v1"
+export CLAUDE_MODEL_HAIKU_AWS="us.anthropic.claude-haiku-4-5-20251001-v1:0"
+
+# Small/fast model defaults
+export CLAUDE_SMALL_FAST_MODEL_AWS="${CLAUDE_MODEL_HAIKU_AWS}"
+```
+
+These ship with AI Runner and are updated when new model versions are released.
+
+### `~/.ai-runner/models.sh` (User Copy)
+
+Copied from `config/models.sh` during `setup.sh`. Updated when system defaults change:
+
+```bash
+./setup.sh
+# Model configuration has been updated.
+#   Changes include updated default model versions.
+# Update to latest model defaults? [Y/n]:
+```
+
+**When to update:**
+- After `git pull` if model defaults changed
+- To get new model versions (e.g., Opus 4.6 → Opus 4.7)
+- If your models aren't working (outdated IDs)
+
+**When to keep:**
+- You have custom overrides in `secrets.sh` (they take precedence)
+- You want to pin specific versions
+
+### Override Hierarchy
+
+```
+secrets.sh overrides         ← Highest priority (user customization)
+    ↓
+~/.ai-runner/models.sh       ← Middle (user's copy of defaults)
+    ↓
+config/models.sh             ← Lowest (system defaults, read-only)
+```
+
+Example:
+```bash
+# config/models.sh (system default)
+export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-6-v1"
+
+# User runs: ai --aws --opus
+# Uses: global.anthropic.claude-opus-4-6-v1
+
+# User adds to secrets.sh:
+export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-6-20260205"
+
+# Now: ai --aws --opus
+# Uses: global.anthropic.claude-opus-4-6-20260205 (override wins)
+```
+
+## Version File and Update Checking
+
+AI Runner includes automatic update checking with smart caching.
+
+### Version File (`VERSION`)
+
+Shipped with AI Runner, defines the current version:
+
+```bash
+cat VERSION
+# v2.1.0
+```
+
+References:
+- Installed to: `/usr/local/share/ai-runner/VERSION`
+- Used by: `ai --version`, `ai-status`, update checker
+
+### Update Checking
+
+AI Runner checks for updates once every 24 hours (non-blocking):
+
+```bash
+ai                # Shows update notice if available
+ai-status         # Shows update status
+```
+
+**How it works:**
+
+1. **Cache-only check** (runs in background on startup):
+   - Queries GitHub API for latest release
+   - Compares with installed version
+   - Caches result for 24 hours
+   - Never blocks startup
+
+2. **Notice display** (if update available):
+   ```
+   [AI Runner] Update available: v2.1.0 → v2.2.0
+   [AI Runner] Run 'ai update' to upgrade
+   ```
+
+3. **Manual update:**
+   ```bash
+   ai update
+   # Fetching latest version from andisearch/airun...
+   # Current: v2.1.0
+   # Latest: v2.2.0
+   # Update available. Proceed? [Y/n]:
+   ```
+
+### Disabling Update Checks
+
+Add to your shell profile:
+
+```bash
+export AI_NO_UPDATE_CHECK=1
+```
+
+Reload:
+```bash
+source ~/.bashrc   # or ~/.zshrc
+```
+
+### Update Cache Location
+
+Update check results are cached at:
+```
+~/.ai-runner/.update-cache
+```
+
+**Cache format:**
+```bash
+cat ~/.ai-runner/.update-cache
+# LAST_CHECK=1735689600
+# LATEST_VERSION=v2.2.0
+# UPDATE_AVAILABLE=true
+```
+
+Cache expires after 24 hours (86400 seconds).
+
+### Manual Update (Without `ai update`)
+
+If you prefer manual updates:
+
+```bash
+cd ~/path/to/airun   # Your cloned repo
+git pull
+./setup.sh
+```
+
+This preserves your `secrets.sh` and prompts about updating `models.sh`.
+
+## Environment Variables Reference
+
+### Runtime Variables (Set by AI Runner)
+
+| Variable | Purpose | Set By |
+|----------|---------|--------|
+| `ANTHROPIC_MODEL` | Primary model for main work | Provider scripts based on `--opus`/`--sonnet`/`--haiku`/`--model` |
+| `ANTHROPIC_SMALL_FAST_MODEL` | Background/auxiliary model | Provider scripts from `CLAUDE_SMALL_FAST_MODEL_<PROVIDER>` |
+| `ANTHROPIC_BASE_URL` | API endpoint | Provider scripts (Ollama, LM Studio, Vercel) |
+| `ANTHROPIC_AUTH_TOKEN` | Bearer token auth | Provider scripts (Vercel) |
+| `CLAUDE_CODE_USE_BEDROCK` | Enable AWS Bedrock mode | AWS provider |
+| `CLAUDE_CODE_USE_VERTEX` | Enable Vertex AI mode | Vertex provider |
+| `CLAUDE_CODE_USE_FOUNDRY` | Enable Azure Foundry mode | Azure provider |
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | Enable agent teams | `--team` flag |
+| `AI_LIVE_OUTPUT` | Enable live streaming | `--live` flag |
+| `AI_QUIET` | Suppress narration | `--quiet` flag |
+| `AI_SESSION_ID` | Unique session identifier | Generated per session |
+
+### User Configuration Variables (Set in secrets.sh)
+
+| Variable | Purpose | Example |
+|----------|---------|----------|
+| `ANTHROPIC_API_KEY` | Anthropic API key | `sk-ant-...` |
+| `AWS_PROFILE` | AWS credentials profile | `my-profile` |
+| `AWS_REGION` | AWS region | `us-west-2` |
+| `ANTHROPIC_VERTEX_PROJECT_ID` | GCP project ID | `my-project-123` |
+| `CLOUD_ML_REGION` | Vertex AI region | `global` |
+| `VERCEL_AI_GATEWAY_TOKEN` | Vercel gateway token | `vck_...` |
+| `ANTHROPIC_FOUNDRY_API_KEY` | Azure API key | `your-key` |
+| `ANTHROPIC_FOUNDRY_RESOURCE` | Azure resource name | `your-resource` |
+| `CLAUDE_MODEL_<TIER>_<PROVIDER>` | Model override | `CLAUDE_MODEL_OPUS_AWS="..."` |
+| `CLAUDE_SMALL_FAST_MODEL_<PROVIDER>` | Background model override | `CLAUDE_SMALL_FAST_MODEL_AWS="..."` |
+| `AI_NO_UPDATE_CHECK` | Disable update checking | `1` |
+
+## Troubleshooting Configuration
+
+### Check Current Configuration
+
+```bash
+ai-status
+```
+
+Shows:
+- Active provider
+- Authentication method
+- Primary model
+- Small/fast model
+- Agent teams status
+- Update availability
+
+### View Effective Model IDs
+
+```bash
+# In an active session
+ai --aws --opus
+# > /status
+# Shows actual ANTHROPIC_MODEL value
+```
+
+### Reset to System Defaults
+
+```bash
+# Remove user overrides
+nano ~/.ai-runner/secrets.sh
+# (delete CLAUDE_MODEL_* exports)
+
+# Reset models.sh to system defaults
+cd ~/path/to/airun
+cp config/models.sh ~/.ai-runner/models.sh
+```
+
+### Verify Override Hierarchy
+
+```bash
+# Check system default
+grep CLAUDE_MODEL_OPUS_AWS ~/path/to/airun/config/models.sh
+
+# Check user copy
+grep CLAUDE_MODEL_OPUS_AWS ~/.ai-runner/models.sh
+
+# Check user override
+grep CLAUDE_MODEL_OPUS_AWS ~/.ai-runner/secrets.sh
+
+# Highest non-empty value wins
+```
+
+## Related Documentation
+
+- [Provider Setup](/providers/overview) — Authentication and credentials
+- [Agent Teams](/advanced/agent-teams) — Multi-agent collaboration
+- [Scripting Guide](/guides/scripting) — Executable markdown and automation

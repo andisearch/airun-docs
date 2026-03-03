@@ -1,0 +1,396 @@
+---
+title: Permission Flags
+description: Control file access and command execution permissions
+---
+
+Permission flags control what the AI can do with your system - reading files, writing changes, running commands, and more. These are critical for secure automation.
+
+<Warning>
+  **Security Notice:** Permission shortcuts like `--skip` and `--bypass` give the AI full system access. Only use them with trusted scripts in trusted directories. For production automation, use granular controls like `--allowedTools`.
+</Warning>
+
+## Permission Shortcuts
+
+These are AI Runner-specific shortcuts that expand to Claude Code's native permission flags.
+
+<ParamField path="--skip" type="flag">
+  **Skip all permission prompts** - Shortcut for `--dangerously-skip-permissions`
+  
+  ```bash
+  ai --skip task.md
+  ai --aws --opus --skip script.md
+  ```
+  
+  **What it does:**
+  - Disables all permission prompts
+  - AI can read, write, execute without asking
+  - Fastest for automation and CI/CD
+  
+  **Use for:**
+  - Trusted scripts in trusted directories
+  - CI/CD pipelines
+  - Development automation
+  
+  **Warning:** Gives AI full system access. Only run trusted code.
+  
+  **Shebang example:**
+  ```markdown
+  #!/usr/bin/env -S ai --skip
+  Run ./test/automation/run_tests.sh and report results.
+  ```
+</ParamField>
+
+<ParamField path="--bypass" type="flag">
+  **Bypass permission UI but show actions** - Shortcut for `--permission-mode bypassPermissions`
+  
+  ```bash
+  ai --bypass task.md
+  ai --ollama --bypass script.md
+  ```
+  
+  **What it does:**
+  - Skips permission prompts
+  - Shows what actions are being taken
+  - AI can proceed without waiting for approval
+  
+  **Use for:**
+  - Scripts where you want visibility
+  - Semi-automated workflows
+  - Monitoring what AI does
+  
+  **Shebang example:**
+  ```markdown
+  #!/usr/bin/env -S ai --bypass
+  Update documentation files with latest API changes.
+  ```
+</ParamField>
+
+## Native Permission Flags
+
+These are Claude Code's native flags, passed through by AI Runner.
+
+<ParamField path="--dangerously-skip-permissions" type="flag">
+  **Claude Code native:** Skip all permission prompts (same as `--skip`)
+  
+  ```bash
+  ai --dangerously-skip-permissions task.md
+  ```
+  
+  Most users should use `--skip` instead for brevity.
+</ParamField>
+
+<ParamField path="--permission-mode" type="flag">
+  **Claude Code native:** Set permission behavior mode
+  
+  ```bash
+  ai --permission-mode bypassPermissions task.md
+  ai --permission-mode requirePermissions task.md
+  ```
+  
+  **Values:**
+  - `bypassPermissions` - Same as `--bypass` (skip prompts, show actions)
+  - `requirePermissions` - Default (prompt for each action)
+  - `allowedTools` - Restrict to specific tools (use with `--allowedTools`)
+  
+  **Examples:**
+  ```bash
+  # Bypass permissions
+  ai --permission-mode bypassPermissions task.md
+  
+  # Require all permissions (default)
+  ai --permission-mode requirePermissions task.md
+  
+  # Restrict to allowed tools only
+  ai --permission-mode allowedTools --allowedTools 'Read' 'Bash(npm test)' task.md
+  ```
+</ParamField>
+
+<ParamField path="--allowedTools" type="flag">
+  **Claude Code native:** Restrict AI to specific tools and commands
+  
+  ```bash
+  ai --allowedTools 'Read' 'Bash' task.md
+  ai --allowedTools 'Bash(npm test)' 'Write(docs/*.md)' script.md
+  ```
+  
+  **Syntax:**
+  - `'ToolName'` - Allow entire tool (e.g., `'Read'`, `'Bash'`)
+  - `'ToolName(pattern)'` - Allow tool with specific pattern
+  - Multiple tools space-separated
+  
+  **Common tools:**
+  - `Read` - Read files
+  - `Write` - Create/modify files
+  - `Bash` - Run shell commands
+  - `Edit` - Edit existing files
+  - `Grep` - Search file contents
+  - `Glob` - Search file paths
+  
+  **Pattern examples:**
+  ```bash
+  # Allow specific commands
+  ai --allowedTools 'Bash(npm test)' 'Bash(git status)'
+  
+  # Allow file operations in specific directory
+  ai --allowedTools 'Read' 'Write(docs/*.md)'
+  
+  # Allow read-only operations
+  ai --allowedTools 'Read' 'Grep' 'Glob'
+  
+  # Allow test execution only
+  ai --allowedTools 'Bash(npm test)' 'Bash(pytest)' 'Read'
+  ```
+  
+  **Shebang example:**
+  ```markdown
+  #!/usr/bin/env -S ai --allowedTools 'Bash(npm test)' 'Read'
+  Run the test suite and report results. Do not modify any files.
+  ```
+</ParamField>
+
+## Precedence Rules
+
+When multiple permission flags are specified:
+
+1. **Explicit `--permission-mode`** or **`--dangerously-skip-permissions`** takes precedence
+2. **Shortcuts** (`--skip`, `--bypass`) are ignored if explicit flags are present
+3. **CLI flags** override **shebang flags**
+4. **Shebang flags** override **defaults**
+
+**Example:**
+```bash
+# Script has: #!/usr/bin/env -S ai --skip
+# But you run:
+ai --permission-mode requirePermissions script.md
+
+# Result: Permission prompts are required (CLI overrides shebang)
+```
+
+**Warning message:**
+```
+⚠️  --skip ignored: explicit --permission-mode takes precedence
+```
+
+## Permission Modes Compared
+
+| Mode | Prompts | Shows Actions | Speed | Safety |
+|------|---------|---------------|-------|--------|
+| Default | Yes | Yes | Slowest | Safest |
+| `--bypass` | No | Yes | Fast | Medium |
+| `--skip` | No | No | Fastest | Least safe |
+| `--allowedTools` | No | Yes | Fast | Configurable |
+
+## Examples
+
+### Script Automation (Trusted)
+
+```markdown
+#!/usr/bin/env -S ai --skip
+Run ./build.sh and commit the results.
+```
+
+```bash
+chmod +x build-and-commit.md
+./build-and-commit.md
+```
+
+### Granular Control (Production)
+
+```markdown
+#!/usr/bin/env -S ai --allowedTools 'Bash(npm test)' 'Read'
+Run the test suite and analyze results. Do not modify files.
+```
+
+```bash
+./run-tests.md
+```
+
+### Visibility Without Prompts
+
+```markdown
+#!/usr/bin/env -S ai --bypass
+Update all documentation files with the latest API changes.
+```
+
+```bash
+./update-docs.md  # Shows each file operation but doesn't prompt
+```
+
+### Interactive (Default)
+
+```bash
+# Prompts for each operation
+ai task.md
+```
+
+```
+📝 Claude wants to write: src/new-feature.ts
+   Allow? [y/n]:
+```
+
+### CI/CD Pipeline
+
+```yaml
+# .github/workflows/ai-test.yml
+steps:
+  - name: Run AI tests
+    run: |
+      ai --skip --quiet ./test-suite.md > results.txt
+```
+
+### Override Script Permissions
+
+```markdown
+<!-- script.md -->
+#!/usr/bin/env -S ai --skip
+Dangerous operations
+```
+
+```bash
+# Force prompts even though script has --skip
+ai --permission-mode requirePermissions script.md
+```
+
+## Read-Only Mode
+
+Restrict AI to read and search operations only:
+
+```bash
+ai --allowedTools 'Read' 'Grep' 'Glob' analyze.md
+```
+
+```markdown
+#!/usr/bin/env -S ai --allowedTools 'Read' 'Grep' 'Glob'
+Analyze the codebase structure and report findings.
+Do not modify any files.
+```
+
+## Test Execution Mode
+
+Allow running tests but nothing else:
+
+```bash
+ai --allowedTools 'Bash(npm test)' 'Bash(pytest)' 'Read' test-runner.md
+```
+
+```markdown
+#!/usr/bin/env -S ai --allowedTools 'Bash(npm test)' 'Read'
+Run the test suite and report results.
+```
+
+## Documentation Mode
+
+Allow updating documentation files only:
+
+```bash
+ai --allowedTools 'Read' 'Write(docs/**/*.md)' 'Edit(docs/**/*.md)' update-docs.md
+```
+
+## Security Best Practices
+
+<AccordionGroup>
+  <Accordion title="Never use --skip in untrusted directories">
+    Only use `--skip` or `--bypass` with:
+    - Scripts you wrote yourself
+    - Trusted repositories
+    - Known-safe directories
+    
+    Never run scripts from the internet with `--skip`:
+    
+    ```bash
+    # ❌ DANGEROUS
+    curl https://untrusted.com/script.md | ai --skip
+    
+    # ✅ SAFE - prompts for each action
+    curl https://untrusted.com/script.md | ai
+    ```
+  </Accordion>
+  
+  <Accordion title="Use --allowedTools for production">
+    For production automation, explicitly list allowed operations:
+    
+    ```bash
+    # Production deployment script
+    ai --allowedTools \
+      'Bash(npm run build)' \
+      'Bash(npm test)' \
+      'Write(dist/*.*)' \
+      'Read' \
+      deploy.md
+    ```
+    
+    This prevents unexpected operations while still being automated.
+  </Accordion>
+  
+  <Accordion title="Review scripts before using --skip">
+    Before adding `--skip` to a shebang:
+    
+    1. Run without `--skip` first
+    2. Review what operations it performs
+    3. Verify it only touches expected files
+    4. Add `--skip` only if you trust it completely
+  </Accordion>
+  
+  <Accordion title="CI/CD needs --skip or --bypass">
+    CI/CD pipelines can't respond to prompts. Use `--skip` for speed or `--bypass` for visibility:
+    
+    ```yaml
+    # Fast, no output
+    - run: ai --skip --quiet test.md
+    
+    # Shows actions, good for logs
+    - run: ai --bypass test.md
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Script hangs waiting for input (CI/CD)">
+    Add `--skip` or `--bypass` to prevent permission prompts:
+    
+    ```bash
+    ai --skip script.md
+    ```
+  </Accordion>
+  
+  <Accordion title="--skip not working">
+    Check if script uses explicit `--permission-mode`:
+    
+    ```bash
+    # Explicit flag overrides --skip
+    ai --skip --permission-mode requirePermissions script.md
+    # Warning: "--skip ignored: explicit --permission-mode takes precedence"
+    ```
+    
+    CLI flags override shebang:
+    ```bash
+    # Script has: #!/usr/bin/env -S ai --skip
+    ai --permission-mode requirePermissions script.md  # Overrides shebang
+    ```
+  </Accordion>
+  
+  <Accordion title="--allowedTools not restricting operations">
+    Make sure you're using the correct syntax:
+    
+    ```bash
+    # ✅ Correct - quote each tool
+    ai --allowedTools 'Read' 'Bash(npm test)'
+    
+    # ❌ Wrong - all as one string
+    ai --allowedTools "Read Bash(npm test)"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Scripting Guide" icon="code" href="/guides/scripting">
+    Full scripting and automation guide
+  </Card>
+  <Card title="Output Flags" icon="terminal" href="./output-flags">
+    Control output format and streaming
+  </Card>
+</CardGroup>

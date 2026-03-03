@@ -1,0 +1,579 @@
+---
+title: "Automated Code Review"
+description: "Security scanning, quality checks, and automated PR reviews"
+---
+
+Automate code review workflows with AI-powered analysis. This guide shows patterns for security scanning, quality checks, and automated PR reviews.
+
+## Basic Code Review Script
+
+```markdown
+#!/usr/bin/env -S ai --opus --skip
+Review the code in this repository for security vulnerabilities.
+Focus on OWASP Top 10 issues. Be specific about file and line numbers.
+```
+
+<Tip>
+**Model choice:** Use `--opus` for code reviews. The most capable model finds more issues and provides better explanations.
+</Tip>
+
+## Security Scanning
+
+### Comprehensive Security Audit
+
+```markdown
+#!/usr/bin/env -S ai --opus --skip
+Perform a comprehensive security audit of this codebase:
+
+1. OWASP Top 10 vulnerabilities:
+   - SQL injection
+   - XSS (cross-site scripting)
+   - CSRF (cross-site request forgery)
+   - Authentication/authorization flaws
+   - Security misconfiguration
+   - Sensitive data exposure
+   - Insecure deserialization
+   - Components with known vulnerabilities
+
+2. Code-specific issues:
+   - Hardcoded secrets or credentials
+   - Insufficient input validation
+   - Insecure cryptographic practices
+   - Race conditions and concurrency issues
+
+3. Dependency vulnerabilities:
+   - Check package.json/requirements.txt/Cargo.toml
+   - Flag packages with known CVEs
+
+For each issue:
+- File path and line number
+- Severity: CRITICAL / HIGH / MEDIUM / LOW
+- Explanation of the vulnerability
+- Specific remediation steps
+- Example of secure code
+
+Prioritize issues by severity.
+```
+
+**Usage:**
+
+```bash
+chmod +x security-audit.md
+./security-audit.md > security-report.md
+```
+
+### Focused Security Checks
+
+**Authentication review:**
+
+```markdown
+#!/usr/bin/env -S ai --opus --skip
+Review authentication and authorization in this codebase:
+
+1. Authentication mechanisms:
+   - Password storage (are passwords hashed with bcrypt/argon2?)
+   - Session management (secure tokens?)
+   - JWT implementation (if used)
+
+2. Authorization checks:
+   - Are permissions checked before sensitive operations?
+   - Any missing authorization checks?
+   - Privilege escalation risks?
+
+3. Common auth vulnerabilities:
+   - Broken authentication
+   - Missing rate limiting on login
+   - Insecure password reset flows
+   - Session fixation
+
+Be specific with file paths and line numbers.
+```
+
+**Data validation review:**
+
+```markdown
+#!/usr/bin/env -S ai --opus --skip
+Review input validation and data sanitization:
+
+1. API endpoints:
+   - Is user input validated?
+   - Are query parameters sanitized?
+   - Are file uploads restricted?
+
+2. Database queries:
+   - Any raw SQL with user input? (SQL injection risk)
+   - Are ORMs used properly?
+
+3. XSS prevention:
+   - Is user content escaped before rendering?
+   - Are Content Security Policies configured?
+
+Flag any inputs that reach dangerous sinks without validation.
+```
+
+**Secrets detection:**
+
+```markdown
+#!/usr/bin/env -S ai --haiku --skip
+Scan for hardcoded secrets and credentials:
+
+1. Search for patterns:
+   - API keys (sk-, pk-, api_key)
+   - Passwords (password=, pwd=)
+   - Database connection strings
+   - Private keys
+   - OAuth tokens
+
+2. Check common locations:
+   - Source code files
+   - Configuration files
+   - Environment files (.env, .env.example)
+   - Docker files
+   - Scripts
+
+3. Also check git history for accidentally committed secrets.
+
+Output: File path, line number, type of secret found.
+```
+
+## Code Quality Reviews
+
+### General Quality Audit
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip
+Review code quality and maintainability:
+
+1. Code organization:
+   - Is the code well-structured?
+   - Are responsibilities clearly separated?
+   - Are naming conventions consistent?
+
+2. Common issues:
+   - Code duplication
+   - Long functions (>50 lines)
+   - High cyclomatic complexity
+   - Unclear variable names
+   - Missing error handling
+
+3. Best practices:
+   - Are design patterns used appropriately?
+   - Is error handling consistent?
+   - Are edge cases handled?
+   - Is logging sufficient for debugging?
+
+4. Technical debt:
+   - TODO comments and their priority
+   - Deprecated API usage
+   - Outdated patterns
+
+Prioritize by impact on maintainability.
+```
+
+### Performance Review
+
+```markdown
+#!/usr/bin/env -S ai --opus --skip
+Review code for performance issues:
+
+1. Algorithm efficiency:
+   - Identify O(n²) or worse algorithms
+   - Nested loops on large datasets
+   - Unnecessary iterations
+
+2. Database performance:
+   - N+1 query problems
+   - Missing indexes
+   - Large result sets without pagination
+   - Unnecessary joins
+
+3. Frontend performance:
+   - Large bundle size
+   - Unnecessary re-renders
+   - Missing memoization
+   - Large images without optimization
+
+4. Resource usage:
+   - Memory leaks
+   - File handles not closed
+   - Connection pool exhaustion
+
+For each issue, estimate performance impact and suggest optimizations.
+```
+
+### Test Coverage Review
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip
+Analyze test coverage and quality:
+
+1. Coverage analysis:
+   - Which modules have tests?
+   - Which critical paths are untested?
+   - What's the approximate coverage percentage?
+
+2. Test quality:
+   - Are tests meaningful or just for coverage?
+   - Are edge cases tested?
+   - Are error paths tested?
+   - Are integration tests present?
+
+3. Gaps:
+   - Critical functionality without tests
+   - Recent changes without test updates
+   - Brittle tests that break often
+
+4. Recommendations:
+   - Priority areas for new tests
+   - Tests that could be simplified
+   - Missing test types (unit/integration/e2e)
+```
+
+## Pull Request Reviews
+
+### Automated PR Review
+
+```markdown
+#!/usr/bin/env -S ai --opus --skip
+Review the changes in this pull request:
+
+1. Security:
+   - New vulnerabilities introduced?
+   - Security best practices followed?
+   - Input validation for new endpoints?
+
+2. Code quality:
+   - Is the code clear and maintainable?
+   - Are naming conventions followed?
+   - Is error handling adequate?
+
+3. Performance:
+   - Any performance regressions?
+   - Database queries optimized?
+   - Resource usage concerns?
+
+4. Testing:
+   - Are new features tested?
+   - Do existing tests still pass?
+   - Are edge cases covered?
+
+5. Documentation:
+   - Is new functionality documented?
+   - Are comments clear and helpful?
+   - README updated if needed?
+
+For each issue:
+- File path and line number
+- Severity: BLOCKER / MAJOR / MINOR
+- Explanation
+- Suggested fix
+
+Use this format:
+
+**[SEVERITY] Issue description**
+
+File: `path/to/file.ts:42`
+
+Problem: [explanation]
+
+Suggestion: [how to fix]
+```
+
+**Usage in GitHub Actions:**
+
+```yaml
+name: AI PR Review
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Install AIRun
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          git clone https://github.com/andisearch/airun.git
+          cd airun && ./setup.sh
+      
+      - name: Run AI review
+        run: |
+          ai --apikey --opus --skip << 'EOF' > review.md
+          Review the changes in this pull request.
+          Focus on security, quality, and performance.
+          Be specific with file paths and line numbers.
+          EOF
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      
+      - name: Comment on PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const review = fs.readFileSync('review.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🤖 AI Code Review\n\n${review}`
+            });
+```
+
+### Review Only Changed Files
+
+More efficient for large repos:
+
+```markdown
+#!/usr/bin/env -S ai --opus --skip
+Review only the files that changed in this PR.
+
+Run: git diff --name-only origin/main...HEAD
+
+For each changed file:
+1. Read the current version
+2. Identify what changed
+3. Review for security, quality, performance issues
+
+Focus on:
+- New vulnerabilities introduced
+- Breaking changes
+- Performance regressions
+- Missing tests for new code
+
+Output format:
+
+**File: path/to/file**
+- Issue 1...
+- Issue 2...
+```
+
+## Provider Selection for Reviews
+
+### When to Use Each Provider
+
+| Review Type | Provider | Model | Why |
+|-------------|----------|-------|-----|
+| **Security audit** | `--apikey` | `--opus` | Most thorough vulnerability detection |
+| **Quick PR review** | `--apikey` | `--sonnet` | Balanced speed and quality |
+| **Simple checks** | `--apikey` | `--haiku` | Fast, cheap for simple patterns |
+| **Large enterprise** | `--aws` | `--opus` | AWS compliance, control |
+| **Free tier testing** | `--ollama` | local model | No API costs |
+
+### Cost Optimization
+
+Review only what matters:
+
+```bash
+# Cheap: Check formatting and simple patterns
+ai --haiku --skip format-check.md
+
+# Medium: Review test files
+ai --sonnet --skip test-review.md
+
+# Expensive: Deep security audit
+ai --opus --skip security-audit.md
+```
+
+## Language-Specific Reviews
+
+### JavaScript/TypeScript
+
+```markdown
+#!/usr/bin/env -S ai --opus --skip
+Review this TypeScript/JavaScript codebase:
+
+1. TypeScript usage:
+   - Are types used effectively?
+   - Any `any` types that should be specific?
+   - Missing type definitions?
+
+2. JavaScript patterns:
+   - Async/await used correctly?
+   - Promise rejections handled?
+   - Event listeners cleaned up?
+   - Memory leaks in closures?
+
+3. React-specific (if applicable):
+   - Unnecessary re-renders?
+   - Missing useCallback/useMemo?
+   - State management issues?
+   - Key props on lists?
+
+4. Node.js-specific (if applicable):
+   - Async errors caught?
+   - Streams handled properly?
+   - Process signals handled?
+```
+
+### Python
+
+```markdown
+#!/usr/bin/env -S ai --opus --skip
+Review this Python codebase:
+
+1. Python idioms:
+   - PEP 8 compliance
+   - List comprehensions vs loops
+   - Context managers for resources
+   - Proper exception handling
+
+2. Type hints:
+   - Are type hints used?
+   - Are they accurate?
+
+3. Django/Flask-specific (if applicable):
+   - ORM queries optimized?
+   - CSRF protection enabled?
+   - SQL injection prevention?
+   - Proper session management?
+
+4. Common issues:
+   - Mutable default arguments
+   - Global state
+   - Resource leaks
+```
+
+### Rust
+
+```markdown
+#!/usr/bin/env -S ai --opus --skip
+Review this Rust codebase:
+
+1. Safety:
+   - Unsafe blocks justified?
+   - Memory safety concerns?
+   - Thread safety issues?
+
+2. Rust idioms:
+   - Ownership used effectively?
+   - Borrowing patterns clear?
+   - Error handling with Result?
+   - Iterator chains vs loops?
+
+3. Performance:
+   - Unnecessary allocations?
+   - Clone overuse?
+   - Missing zero-cost abstractions?
+
+4. API design:
+   - Ergonomic public APIs?
+   - Proper use of traits?
+```
+
+## Combining Multiple Review Types
+
+Run multiple focused reviews in parallel:
+
+```bash
+#!/bin/bash
+# comprehensive-review.sh
+
+# Run reviews in parallel
+ai --opus --skip security-audit.md > reports/security.md &
+ai --sonnet --skip quality-review.md > reports/quality.md &
+ai --sonnet --skip performance-review.md > reports/performance.md &
+ai --sonnet --skip test-coverage.md > reports/tests.md &
+
+# Wait for all to complete
+wait
+
+# Combine reports
+cat reports/*.md > full-review.md
+
+echo "Review complete: full-review.md"
+```
+
+## Filtering and Prioritization
+
+Focus reviews on what matters:
+
+```markdown
+#!/usr/bin/env -S ai --opus --skip
+Security review focused on HIGH and CRITICAL issues only.
+
+Ignore:
+- Minor style issues
+- Low-severity findings
+- Non-security concerns
+
+Focus on:
+- Authentication/authorization flaws
+- SQL injection
+- XSS vulnerabilities
+- Hardcoded secrets
+- Insecure cryptography
+
+Only report issues that pose real security risk.
+```
+
+## Integration with Code Review Tools
+
+### GitHub Code Review Comments
+
+Post line-specific comments:
+
+```python
+#!/usr/bin/env python3
+# post-review-comments.py
+
+import os
+import subprocess
+from github import Github
+
+# Get AI review
+review = subprocess.check_output([
+    'ai', '--opus', '--skip', 'review-script.md'
+]).decode('utf-8')
+
+# Parse review for file:line issues
+# Format: File: path/to/file.ts:42
+issues = parse_review(review)  # Your parser
+
+# Post to GitHub
+g = Github(os.getenv('GITHUB_TOKEN'))
+repo = g.get_repo(os.getenv('GITHUB_REPOSITORY'))
+pr = repo.get_pull(int(os.getenv('PR_NUMBER')))
+
+for issue in issues:
+    pr.create_review_comment(
+        body=issue['comment'],
+        path=issue['file'],
+        line=issue['line']
+    )
+```
+
+### GitLab Merge Request Comments
+
+Similar pattern for GitLab:
+
+```bash
+# Post review to GitLab MR
+REVIEW=$(ai --opus --skip review.md)
+
+curl -X POST "$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID/notes" \
+  --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+  --form "body=$REVIEW"
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="CI/CD Integration" icon="gear" href="/examples/ci-cd">
+    Automate reviews in CI/CD
+  </Card>
+  <Card title="Security Guide" icon="shield" href="/security">
+    Security best practices
+  </Card>
+  <Card title="Test Automation" icon="flask" href="/examples/test-automation">
+    Automated testing workflows
+  </Card>
+  <Card title="Scripting Guide" icon="book" href="/scripting">
+    Advanced scripting patterns
+  </Card>
+</CardGroup>

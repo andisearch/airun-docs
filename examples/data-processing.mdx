@@ -1,0 +1,593 @@
+---
+title: "Data Processing"
+description: "Process JSON, CSV, and logs with AI-powered pipelines"
+---
+
+Build data processing pipelines with AIRun. Transform, analyze, and enrich data using AI, with full Unix pipe support.
+
+## Basic Patterns
+
+### Process JSON Data
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Analyze the JSON data provided on stdin.
+Summarize key metrics and flag any anomalies.
+```
+
+```bash
+cat metrics.json | ./analyze.md
+```
+
+**Input (metrics.json):**
+
+```json
+{
+  "date": "2026-03-03",
+  "users": 1500,
+  "revenue": 45000,
+  "signups": 120,
+  "churn": 8,
+  "response_times_ms": [120, 150, 890, 130, 125]
+}
+```
+
+**Output:**
+
+```
+Metrics Summary for 2026-03-03:
+- Active users: 1,500
+- Revenue: $45,000 ($30/user)
+- Growth: 120 signups, 8 churn (93.3% retention)
+
+Anomaly Detected:
+- Response time spike: 890ms (7x normal)
+- Other requests: 120-150ms (healthy)
+- Action: Investigate slow query/endpoint
+```
+
+### Transform Data Format
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Convert the JSON data on stdin to CSV format.
+Include all fields as columns.
+```
+
+```bash
+cat data.json | ./json-to-csv.md > data.csv
+```
+
+### Filter and Aggregate
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+The stdin contains JSON with an array of transactions.
+Filter for transactions > $1000.
+Output: total count and sum.
+```
+
+```bash
+cat transactions.json | ./filter-sum.md
+# Output: 47 transactions totaling $87,340
+```
+
+## Pipeline Patterns
+
+### Multi-Stage Processing
+
+Chain multiple AI scripts together:
+
+```bash
+# Extract → Analyze → Format pipeline
+./extract-data.md | ./analyze.md | ./format-report.md > report.txt
+```
+
+**extract-data.md:**
+
+```markdown
+#!/usr/bin/env -S ai --haiku --skip
+Read metrics.json and output only:
+- users
+- revenue  
+- signups
+- churn
+
+Format as CSV (no headers).
+```
+
+**analyze.md:**
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+The stdin contains CSV: users,revenue,signups,churn
+
+Calculate:
+- Revenue per user
+- Retention rate
+- Growth rate
+
+Output: One line summary.
+```
+
+**format-report.md:**
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Format the analysis from stdin as a professional email to executives.
+Keep it under 3 paragraphs.
+```
+
+### Parallel Processing
+
+Process multiple files concurrently:
+
+```bash
+#!/bin/bash
+# process-all.sh
+
+for file in data/*.json; do
+    cat "$file" | ./analyze.md > "results/$(basename "$file" .json).txt" &
+done
+
+wait
+echo "Processed $(ls results/ | wc -l) files"
+```
+
+## Real-World Use Cases
+
+### API Response Analysis
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Analyze the API response on stdin (JSON format):
+
+1. Response structure validity
+2. Expected fields present?
+3. Data types correct?
+4. Any error indicators?
+5. Performance metrics (if present)
+
+Output: VALID or INVALID with explanation.
+```
+
+```bash
+# Test API endpoint
+curl -s https://api.example.com/v1/users | ./validate-response.md
+```
+
+### Log Analysis
+
+```markdown
+#!/usr/bin/env -S ai --sonnet
+Analyze the nginx access logs on stdin:
+
+1. Request volume and patterns
+2. Top 10 endpoints by traffic
+3. Error rate (4xx, 5xx)
+4. Response time distribution
+5. Unusual patterns or potential attacks
+
+Focus on actionable insights.
+```
+
+```bash
+tail -1000 /var/log/nginx/access.log | ./analyze-logs.md
+```
+
+### Database Query Results
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Analyze the database query results on stdin (CSV format).
+
+Identify:
+- Trends in the data
+- Outliers
+- Missing or null values
+- Data quality issues
+
+Suggest next steps for data cleanup.
+```
+
+```bash
+psql -d mydb -c "SELECT * FROM metrics WHERE date > NOW() - INTERVAL '7 days'" \
+  --csv | ./analyze-db-results.md
+```
+
+### Git History Analysis
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Analyze the git commit history on stdin:
+
+1. Most active areas of the codebase
+2. Commit message quality
+3. Commit frequency patterns
+4. Authors and contribution patterns
+5. Any concerning trends?
+```
+
+```bash
+git log --oneline --numstat -100 | ./analyze-commits.md
+```
+
+## Data Transformation Recipes
+
+### JSON to Markdown Table
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Convert the JSON array on stdin to a Markdown table.
+Auto-detect columns from the first object.
+Format numbers with proper separators.
+```
+
+```bash
+cat users.json | ./json-to-table.md > users-table.md
+```
+
+**Input:**
+
+```json
+[
+  {"name": "Alice", "sales": 45000, "region": "West"},
+  {"name": "Bob", "sales": 38000, "region": "East"}
+]
+```
+
+**Output:**
+
+```markdown
+| Name  | Sales   | Region |
+|-------|---------|--------|
+| Alice | 45,000  | West   |
+| Bob   | 38,000  | East   |
+```
+
+### CSV Cleanup
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Clean the CSV data on stdin:
+
+1. Remove duplicate rows
+2. Fix inconsistent formatting
+3. Handle missing values (use "N/A")
+4. Standardize date formats to YYYY-MM-DD
+5. Trim whitespace
+
+Output: Cleaned CSV.
+```
+
+```bash
+cat messy-data.csv | ./clean-csv.md > clean-data.csv
+```
+
+### Data Enrichment
+
+```markdown
+#!/usr/bin/env -S ai --sonnet
+Enrich the user data on stdin (CSV).
+
+For each row:
+1. Read: user_id, email, signup_date
+2. Infer: likely timezone from email domain
+3. Calculate: days since signup
+4. Determine: user lifecycle stage (new/active/at-risk)
+
+Output: Enriched CSV with new columns.
+```
+
+```bash
+cat users.csv | ./enrich-users.md > users-enriched.csv
+```
+
+### Anomaly Detection
+
+```markdown
+#!/usr/bin/env -S ai --sonnet
+Detect anomalies in the time-series data on stdin (CSV).
+
+Columns: timestamp, value
+
+Use statistical methods:
+- 3-sigma rule for outliers
+- Moving average for trend
+- Sudden spikes or drops
+
+Output: CSV with only anomalous rows + explanation column.
+```
+
+```bash
+cat timeseries.csv | ./detect-anomalies.md > anomalies.csv
+```
+
+## Advanced Patterns
+
+### Streaming Large Files
+
+Process large files in chunks:
+
+```bash
+#!/bin/bash
+# process-large-file.sh
+
+# Process 1000 lines at a time
+split -l 1000 large-file.csv chunks/chunk-
+
+for chunk in chunks/chunk-*; do
+    cat "$chunk" | ./analyze.md >> results.txt
+    rm "$chunk"
+done
+
+echo "Processing complete"
+```
+
+### Live Streaming with --live
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --live
+Analyze the log stream on stdin.
+
+Print a summary every 100 lines:
+- Error count
+- Warning count
+- Unusual patterns
+
+Continue until EOF.
+```
+
+```bash
+tail -f /var/log/app.log | ./stream-analyze.md
+```
+
+### Multi-Source Aggregation
+
+```bash
+#!/bin/bash
+# aggregate-sources.sh
+
+# Fetch from multiple sources
+curl -s https://api1.example.com/metrics > /tmp/source1.json &
+curl -s https://api2.example.com/stats > /tmp/source2.json &
+wait
+
+# Combine and analyze
+jq -s '.[0] + .[1]' /tmp/source1.json /tmp/source2.json | \
+    ./analyze-combined.md > report.txt
+```
+
+### Error Recovery
+
+```bash
+#!/bin/bash
+# process-with-retry.sh
+
+MAX_RETRIES=3
+RETRY=0
+
+while [ $RETRY -lt $MAX_RETRIES ]; do
+    if cat data.json | ./process.md > output.txt 2>error.log; then
+        echo "Success"
+        exit 0
+    fi
+    
+    RETRY=$((RETRY + 1))
+    echo "Attempt $RETRY failed, retrying..."
+    sleep 2
+done
+
+echo "Failed after $MAX_RETRIES attempts"
+exit 1
+```
+
+## Data Processing in CI/CD
+
+### Daily Metrics Analysis
+
+```yaml
+# .github/workflows/daily-metrics.yml
+name: Daily Metrics Analysis
+on:
+  schedule:
+    - cron: '0 1 * * *'  # 1 AM daily
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install AIRun
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          git clone https://github.com/andisearch/airun.git
+          cd airun && ./setup.sh
+      
+      - name: Fetch and analyze metrics
+        run: |
+          curl -s https://api.example.com/daily-metrics | \
+            ai --apikey --haiku << 'EOF' > daily-report.md
+          Analyze the daily metrics JSON on stdin.
+          Compare to typical values.
+          Flag any anomalies.
+          EOF
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      
+      - name: Email report
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: Daily Metrics Report
+          body: file://daily-report.md
+          to: team@example.com
+```
+
+### Process S3 Data
+
+```bash
+#!/bin/bash
+# process-s3-data.sh
+
+# Download from S3
+aws s3 cp s3://my-bucket/data/latest.json - | \
+    ai --apikey --haiku --skip << 'EOF' > summary.txt
+Analyze the JSON data on stdin.
+Generate a one-paragraph summary.
+EOF
+
+# Upload results
+aws s3 cp summary.txt s3://my-bucket/reports/$(date +%Y%m%d).txt
+```
+
+## Cost Optimization
+
+### Choose the Right Model
+
+| Task | Model | Why |
+|------|-------|-----|
+| Simple CSV transformations | `--haiku` | Fast, cheap |
+| Log analysis, anomaly detection | `--sonnet` | Balanced reasoning |
+| Complex data modeling | `--opus` | Deep analysis |
+
+```bash
+# Cheap: Simple format conversion
+cat data.json | ai --haiku json-to-csv.md
+
+# Balanced: Anomaly detection
+cat metrics.csv | ai --sonnet detect-anomalies.md
+
+# Expensive: Complex statistical analysis
+cat dataset.csv | ai --opus deep-analysis.md
+```
+
+### Batch Processing
+
+Process multiple files in one prompt (saves API calls):
+
+```markdown
+#!/usr/bin/env -S ai --haiku --skip
+Analyze all JSON files in data/ directory.
+
+For each file:
+1. Read contents
+2. Extract key metrics
+3. One-line summary
+
+Output: Markdown list of summaries.
+```
+
+```bash
+./analyze-all.md > summary.md
+```
+
+## Monitoring and Logging
+
+### Pipeline with Status Tracking
+
+```bash
+#!/bin/bash
+# monitored-pipeline.sh
+
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a pipeline.log; }
+
+log "Starting data processing pipeline"
+
+log "Stage 1: Extract data"
+if ! ./extract.md > stage1.json 2>>pipeline.log; then
+    log "ERROR: Stage 1 failed"
+    exit 1
+fi
+
+log "Stage 2: Transform data"
+if ! cat stage1.json | ./transform.md > stage2.csv 2>>pipeline.log; then
+    log "ERROR: Stage 2 failed"
+    exit 1
+fi
+
+log "Stage 3: Generate report"
+if ! cat stage2.csv | ./report.md > final-report.md 2>>pipeline.log; then
+    log "ERROR: Stage 3 failed"
+    exit 1
+fi
+
+log "Pipeline complete: final-report.md"
+```
+
+### Health Checks
+
+```markdown
+#!/usr/bin/env -S ai --haiku
+Validate the data pipeline output on stdin (JSON).
+
+Checks:
+1. Valid JSON structure
+2. Required fields present: [timestamp, value, status]
+3. No null values
+4. Timestamp in ISO 8601 format
+5. Status in [active, pending, completed]
+
+Output: PASS or FAIL with specific issues.
+```
+
+```bash
+cat output.json | ./validate.md || echo "Pipeline validation failed!"
+```
+
+## Troubleshooting
+
+### Empty Output
+
+**Problem:** Pipeline produces empty files.
+
+**Debug:**
+
+```bash
+# Check each stage
+cat input.json | tee /dev/stderr | ./process.md | tee /dev/stderr > output.txt
+```
+
+### Data Loss in Pipeline
+
+**Problem:** Data disappears between stages.
+
+**Solution:** Save intermediate results:
+
+```bash
+./stage1.md > stage1.out
+cat stage1.out | ./stage2.md > stage2.out
+cat stage2.out | ./stage3.md > final.out
+```
+
+### Encoding Issues
+
+**Problem:** Special characters corrupted.
+
+**Solution:** Force UTF-8:
+
+```bash
+export LC_ALL=en_US.UTF-8
+cat data.json | ./process.md > output.txt
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Stdin Processing" icon="arrow-right-to-bracket" href="/examples/stdin-processing">
+    Unix pipe fundamentals
+  </Card>
+  <Card title="CI/CD Integration" icon="gear" href="/examples/ci-cd">
+    Automate data pipelines
+  </Card>
+  <Card title="Live Streaming" icon="tower-broadcast" href="/examples/live-streaming">
+    Process data in real-time
+  </Card>
+  <Card title="Scripting Guide" icon="book" href="/scripting">
+    Advanced pipeline patterns
+  </Card>
+</CardGroup>

@@ -1,0 +1,454 @@
+---
+title: "Live Streaming Output"
+description: "Stream AI progress in real-time for long-running scripts"
+---
+
+See AI output as it's generated, not just when complete. This example shows how `--live` streams progress for long-running scripts.
+
+## The Script
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip --live
+Explore this repository and write a short summary of what it does,
+its key features, and how to get started. Print your findings as you go.
+Finally, generate a concise report in markdown format.
+```
+
+<Tip>
+From `examples/live-report.md`. Note the key phrase: **"Print your findings as you go."**
+</Tip>
+
+## How It Works
+
+### The `--live` Flag
+
+```bash
+--live
+```
+
+Enables real-time streaming of AI output. Instead of waiting for the full response, you see text appear as the AI writes it.
+
+**Without `--live`:**
+
+```bash
+./script.md
+# (silence for 30 seconds)
+# Then all output appears at once
+```
+
+**With `--live`:**
+
+```bash
+./script.md
+# (starts streaming immediately)
+I'll explore the repository structure...
+Found a Node.js project with TypeScript...
+Looking at package.json to identify dependencies...
+Now examining the main entry point...
+# (output continues in real-time)
+```
+
+### How Streaming Works
+
+`--live` streams at **turn granularity** - each time Claude writes text between tool calls, that text appears immediately.
+
+<Info>
+**Critical insight:** The AI must be prompted to narrate its progress, otherwise it may work silently using tools and only output text at the end.
+
+**Streams incrementally:**
+```
+Print your findings as you go.
+```
+
+**No intermediate output:**
+```
+Explore this repository and write a summary.
+```
+
+Both produce the same final result, but only the first streams progress.
+</Info>
+
+### Prompting for Live Output
+
+Use these phrases to get streaming output:
+
+- **"Print as you go"**
+- **"Report findings as you discover them"**
+- **"Describe each step"**
+- **"Narrate your progress"**
+- **"Step by step, explain what you find"**
+
+These prompt the AI to write text between tool calls, giving `--live` something to stream.
+
+## Running the Script
+
+### Basic Usage
+
+```bash
+# Make it executable
+chmod +x live-report.md
+
+# Run it
+./live-report.md
+```
+
+You'll see output stream in real-time:
+
+```
+[AI Runner] Using: Claude Code + Claude Pro
+[AI Runner] Model: Sonnet 4.6
+
+I'll start by exploring the repository structure to understand the project.
+
+This appears to be a Node.js project with TypeScript. I can see:
+- Package.json indicating it's called "airun" 
+- TypeScript configuration files
+- A src/ directory with the main source code
+
+Let me examine the key files to understand what it does...
+
+(output continues streaming)
+```
+
+### Save Output to File
+
+```bash
+./live-report.md > report.md
+```
+
+When stdout is redirected, `--live` automatically separates narration from content:
+
+**Console (stderr) - streams in real-time:**
+
+```
+[AI Runner] Using: Claude Code + Claude Pro
+[AI Runner] Model: Sonnet 4.6
+
+I'll explore the repository structure and key files...
+Now let me look at the core scripts and provider structure.
+Here's my report:
+[AI Runner] Done (70 lines written)
+```
+
+**File (stdout) - clean content only:**
+
+```markdown
+# AIRun Project Summary
+
+## Overview
+AIRun is a tool for running AI prompts like programs...
+
+## Key Features
+- Executable markdown with shebang support
+- Cross-cloud provider switching
+- Unix pipe support
+...
+```
+
+How it works:
+
+- Intermediate turns (narration) → **stderr** (appears on console)
+- Last turn content → **stdout** (saved to file)
+- The last turn is split at the first markdown heading or YAML frontmatter
+- Only the structured content goes to the file
+
+### Override Model or Provider
+
+```bash
+# Use Opus for deeper analysis
+ai --opus live-report.md
+
+# Use AWS Bedrock
+ai --aws --sonnet live-report.md
+
+# Use local Ollama
+ai --ollama live-report.md
+```
+
+### Suppress Status Messages
+
+For CI/CD where you only want clean output:
+
+```bash
+ai --quiet live-report.md > report.md
+```
+
+No status messages, just the final report saved to the file.
+
+## Real-World Usage
+
+### Repository Documentation
+
+Generate README documentation with live progress:
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip --live
+Explore this repository and generate a comprehensive README.md:
+
+1. Project overview and purpose
+2. Installation instructions
+3. Usage examples
+4. API documentation
+5. Contributing guidelines
+
+Print a status update after examining each major directory.
+Finally, output the complete README in markdown format.
+```
+
+```bash
+chmod +x generate-readme.md
+./generate-readme.md > README.md
+```
+
+You'll see progress on console, clean README saved to file.
+
+### Onboarding New Team Members
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip --live
+Create an onboarding guide for new developers:
+
+1. Describe the codebase structure
+2. Explain the development workflow
+3. List the key technologies used
+4. Identify the most important files to read first
+5. Suggest a learning path
+
+Narrate your exploration as you go through the codebase.
+Finally, generate a structured onboarding document.
+```
+
+### Security Audit with Progress
+
+```markdown
+#!/usr/bin/env -S ai --opus --skip --live
+Perform a security audit of this codebase:
+
+1. Check for common vulnerabilities (OWASP Top 10)
+2. Review authentication and authorization
+3. Examine data validation
+4. Check for exposed secrets or credentials
+5. Review dependencies for known vulnerabilities
+
+Report findings as you examine each area.
+Finally, generate a prioritized security report.
+```
+
+### Long-Running Test Suites
+
+```markdown
+#!/usr/bin/env -S ai --sonnet --skip --live
+Run the full test suite including integration tests.
+
+Print a status update after each test file completes:
+- File name
+- Pass/fail count
+- Time taken
+
+At the end, provide a summary with:
+- Total pass/fail counts
+- Slowest tests
+- Root cause analysis for failures
+```
+
+## Browser Automation with Live Progress
+
+Combine `--live` with `--chrome` for browser testing:
+
+```markdown
+#!/usr/bin/env -S ai --skip --chrome --live
+Test the user registration flow:
+
+1. Navigate to the signup page
+2. Fill in the registration form
+3. Submit and verify email sent
+4. Follow email link to activate account
+5. Login with new credentials
+
+Narrate each step as you complete it.
+Report any issues found.
+```
+
+```bash
+chmod +x test-signup.md
+./test-signup.md
+```
+
+You'll see each step as it happens:
+
+```
+Navigating to https://app.example.com/signup...
+Filling in the registration form...
+Submitting the form...
+Checking for success message...
+✓ Registration successful
+Looking for confirmation email...
+```
+
+## Output Redirection Patterns
+
+### Narration to Console, Content to File
+
+This is the default behavior when redirecting:
+
+```bash
+./live-report.md > report.md
+```
+
+- Narration streams to console (stderr)
+- Clean report saved to file (stdout)
+
+### Everything to File (No Console Output)
+
+```bash
+./live-report.md > report.md 2>&1
+```
+
+Both stdout and stderr go to the file.
+
+### Only Status Messages (No Content)
+
+```bash
+./live-report.md > /dev/null
+```
+
+See progress on console, discard the final report.
+
+### Separate Files for Narration and Content
+
+```bash
+./live-report.md > report.md 2> progress.log
+```
+
+- Clean report → `report.md`
+- Progress narration → `progress.log`
+
+## Requirements
+
+`--live` requires `jq` to be installed:
+
+```bash
+# macOS
+brew install jq
+
+# Ubuntu/Debian
+sudo apt install jq
+
+# Fedora
+sudo dnf install jq
+```
+
+If `jq` is not installed, AIRun will fall back to non-streaming output and show a warning.
+
+## When to Use `--live`
+
+Use `--live` for:
+
+- **Long-running scripts** (>30 seconds) where you want to see progress
+- **Browser automation** to see each step as it happens
+- **Test suites** to see results as tests complete
+- **Repository exploration** to understand what the AI is examining
+- **CI/CD** to get real-time build logs
+
+Don't use `--live` for:
+
+- **Quick scripts** (under 10 seconds) where streaming adds no value
+- **Pipe chains** where you're piping to another script
+- **JSON output** where structured data is needed
+
+## Combining with Other Flags
+
+### Live + Quiet (CI/CD)
+
+```bash
+ai --live --quiet script.md > output.txt
+```
+
+Streaming to stdout, no status messages on stderr. Good for CI/CD logs.
+
+### Live + Variables
+
+```markdown
+#!/usr/bin/env -S ai --live --skip
+---
+vars:
+  target: "authentication"
+---
+Audit the {{target}} system. Print findings as you discover them.
+```
+
+```bash
+./audit.md --target "payment processing"
+```
+
+### Live + Provider Override
+
+```bash
+# Script has --live in shebang, override provider from CLI
+ai --aws --opus script.md
+```
+
+## Troubleshooting
+
+### No Intermediate Output
+
+**Problem:** Using `--live` but only seeing output at the end.
+
+**Solution:** Add narration phrases to your prompt:
+
+```diff
+- Explore this repository and write a summary.
++ Explore this repository. Print your findings as you go.
++ Finally, write a summary.
+```
+
+### Output Not Streaming to Console
+
+**Problem:** Output appears all at once instead of streaming.
+
+**Solution:** Check that `jq` is installed:
+
+```bash
+which jq
+```
+
+If not found:
+
+```bash
+brew install jq  # macOS
+sudo apt install jq  # Linux
+```
+
+### Wrong Content in File
+
+**Problem:** Redirected file contains narration instead of just the report.
+
+**Solution:** Make sure your prompt ends with a clear content marker:
+
+```markdown
+#!/usr/bin/env -S ai --live --skip
+Explore the repo. Print findings as you go.
+
+Finally, generate a report in markdown format:
+# Report Title
+...
+```
+
+The `#` heading tells AIRun where content starts.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Test Automation" icon="flask" href="/examples/test-automation">
+    Add --live to test scripts
+  </Card>
+  <Card title="CI/CD Integration" icon="gear" href="/examples/ci-cd">
+    Use live output in CI/CD pipelines
+  </Card>
+  <Card title="Data Processing" icon="database" href="/examples/data-processing">
+    Stream processing for large datasets
+  </Card>
+  <Card title="Scripting Guide" icon="book" href="/scripting">
+    Complete guide to streaming output
+  </Card>
+</CardGroup>
