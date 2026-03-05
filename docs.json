@@ -63,7 +63,8 @@
             "pages": [
               "advanced/agent-teams",
               "advanced/composable-scripts",
-              "advanced/configuration"
+              "advanced/configuration",
+              "advanced/mcp-server"
             ]
           }
         ]

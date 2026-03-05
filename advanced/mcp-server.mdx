@@ -1,0 +1,110 @@
+---
+title: MCP server for AI agents
+description: Connect your AI coding tools to the AIRun documentation via MCP, llms.txt, and markdown content negotiation.
+icon: robot
+keywords:
+  - MCP server
+  - llms.txt
+  - AI agents
+  - Claude Code
+  - Cursor
+  - VS Code
+  - Windsurf
+---
+
+This documentation site exposes an MCP server and llms.txt files so AI coding agents can search and read AIRun documentation directly.
+
+## MCP server
+
+The docs site runs a [Model Context Protocol](https://modelcontextprotocol.io/) server that gives your AI tools access to a `SearchAndiAIRun` tool. This tool searches across the AIRun knowledge base to find relevant guides, code examples, and implementation details.
+
+**Server URL:** `https://docs.airun.me/mcp`
+
+### Claude Code
+
+```bash
+claude mcp add airun-docs --transport streamable-http https://docs.airun.me/mcp
+```
+
+### Claude web and desktop
+
+Add this to your MCP server settings:
+
+```json
+{
+  "mcpServers": {
+    "airun-docs": {
+      "url": "https://docs.airun.me/mcp"
+    }
+  }
+}
+```
+
+### Cursor
+
+Add to your `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "airun-docs": {
+      "url": "https://docs.airun.me/mcp"
+    }
+  }
+}
+```
+
+### VS Code
+
+Add to your VS Code settings (JSON):
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "airun-docs": {
+        "type": "http",
+        "url": "https://docs.airun.me/mcp"
+      }
+    }
+  }
+}
+```
+
+### Windsurf
+
+Add to your Windsurf MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "airun-docs": {
+      "url": "https://docs.airun.me/mcp"
+    }
+  }
+}
+```
+
+## llms.txt
+
+The site publishes [llms.txt](https://llmstxt.org/) files that list all documentation pages with direct markdown URLs.
+
+| File | Contents |
+|---|---|
+| [`/llms.txt`](https://docs.airun.me/llms.txt) | Page titles and descriptions with markdown links |
+| [`/llms-full.txt`](https://docs.airun.me/llms-full.txt) | Full page content inlined as markdown |
+
+Use `/llms.txt` for discovery and navigation. Use `/llms-full.txt` when you need the complete documentation in a single request.
+
+## Markdown content negotiation
+
+Any docs page returns clean markdown when requested with the `Accept: text/markdown` header. The markdown response is smaller than HTML and includes YAML frontmatter.
+
+```bash
+curl -H "Accept: text/markdown" https://docs.airun.me/quickstart
+```
+
+The response includes headers for automated discovery:
+
+- `Link` headers pointing to `/llms.txt` and `/llms-full.txt`
+- `X-Llms-Txt` header with the llms.txt URL
