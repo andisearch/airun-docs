@@ -16,7 +16,15 @@
   "footer": {
     "socials": {
       "github": "https://github.com/andisearch/airun"
-    }
+    },
+    "links": [
+      {
+        "header": "Resources",
+        "items": [
+          { "label": "System Status", "href": "https://status.andiai.com" }
+        ]
+      }
+    ]
   },
   "navigation": {
     "tabs": [
