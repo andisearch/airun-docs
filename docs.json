@@ -1,128 +1,133 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "Andi AIRun",
-  "theme": "aspen",
-  "colors": {
-    "primary": "#2563eb",
-    "light": "#60a5fa",
-    "dark": "#1e40af"
-  },
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/andisearch/airun"
-    }
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/andisearch/airun"
+    "$schema": "https://mintlify.com/docs.json",
+    "name": "Andi AIRun",
+    "theme": "aspen",
+    "colors": {
+        "primary": "#2563eb",
+        "light": "#60a5fa",
+        "dark": "#1e40af"
     },
-    "links": [
-      {
-        "header": "Resources",
-        "items": [
-          { "label": "System Status", "href": "https://status.andiai.com" }
+    "navbar": {
+        "primary": {
+            "type": "github",
+            "href": "https://github.com/andisearch/airun"
+        }
+    },
+    "footer": {
+        "socials": {
+            "github": "https://github.com/andisearch/airun"
+        },
+        "links": [
+            {
+                "header": "Resources",
+                "items": [
+                    {
+                        "label": "System Status",
+                        "href": "https://status.andiai.com"
+                    }
+                ]
+            }
         ]
-      }
-    ]
-  },
-  "navigation": {
-    "tabs": [
-      {
-        "tab": "Documentation",
-        "groups": [
-          {
-            "group": "Get Started",
-            "pages": [
-              "introduction",
-              "quickstart",
-              "installation"
-            ]
-          },
-          {
-            "group": "Core Concepts",
-            "pages": [
-              "concepts/executable-markdown",
-              "concepts/unix-pipes",
-              "concepts/provider-switching"
-            ]
-          },
-          {
-            "group": "Guides",
-            "pages": [
-              "guides/scripting",
-              "guides/automation",
-              "guides/variables",
-              "guides/live-output",
-              "guides/permissions"
-            ]
-          },
-          {
-            "group": "Providers",
-            "pages": [
-              "providers/overview",
-              "providers/local",
-              "providers/cloud",
-              "providers/switching"
-            ]
-          },
-          {
-            "group": "Advanced",
-            "pages": [
-              "advanced/agent-teams",
-              "advanced/composable-scripts",
-              "advanced/configuration",
-              "advanced/mcp-server"
-            ]
-          }
+    },
+    "navigation": {
+        "tabs": [
+            {
+                "tab": "Documentation",
+                "groups": [
+                    {
+                        "group": "Get Started",
+                        "pages": ["introduction", "quickstart", "installation"]
+                    },
+                    {
+                        "group": "Core Concepts",
+                        "pages": [
+                            "concepts/executable-markdown",
+                            "concepts/unix-pipes",
+                            "concepts/provider-switching"
+                        ]
+                    },
+                    {
+                        "group": "Guides",
+                        "pages": [
+                            "guides/scripting",
+                            "guides/automation",
+                            "guides/variables",
+                            "guides/live-output",
+                            "guides/permissions"
+                        ]
+                    },
+                    {
+                        "group": "Providers",
+                        "pages": [
+                            "providers/overview",
+                            "providers/local",
+                            "providers/cloud",
+                            "providers/switching"
+                        ]
+                    },
+                    {
+                        "group": "Advanced",
+                        "pages": [
+                            "advanced/agent-teams",
+                            "advanced/composable-scripts",
+                            "advanced/configuration",
+                            "advanced/mcp-server"
+                        ]
+                    }
+                ]
+            },
+            {
+                "tab": "CLI Reference",
+                "groups": [
+                    {
+                        "group": "Commands",
+                        "pages": [
+                            "cli/ai",
+                            "cli/ai-status",
+                            "cli/ai-sessions",
+                            "cli/ai-update"
+                        ]
+                    },
+                    {
+                        "group": "Flags",
+                        "pages": [
+                            "cli/provider-flags",
+                            "cli/model-flags",
+                            "cli/permission-flags",
+                            "cli/output-flags"
+                        ]
+                    }
+                ]
+            },
+            {
+                "tab": "Examples",
+                "groups": [
+                    {
+                        "group": "Script Examples",
+                        "pages": [
+                            "examples/hello-world",
+                            "examples/code-analysis",
+                            "examples/test-automation",
+                            "examples/live-streaming",
+                            "examples/stdin-processing"
+                        ]
+                    },
+                    {
+                        "group": "Use Cases",
+                        "pages": [
+                            "examples/ci-cd",
+                            "examples/code-review",
+                            "examples/data-processing"
+                        ]
+                    }
+                ]
+            }
         ]
-      },
-      {
-        "tab": "CLI Reference",
-        "groups": [
-          {
-            "group": "Commands",
-            "pages": [
-              "cli/ai",
-              "cli/ai-status",
-              "cli/ai-sessions",
-              "cli/ai-update"
-            ]
-          },
-          {
-            "group": "Flags",
-            "pages": [
-              "cli/provider-flags",
-              "cli/model-flags",
-              "cli/permission-flags",
-              "cli/output-flags"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "Examples",
-        "groups": [
-          {
-            "group": "Script Examples",
-            "pages": [
-              "examples/hello-world",
-              "examples/code-analysis",
-              "examples/test-automation",
-              "examples/live-streaming",
-              "examples/stdin-processing"
-            ]
-          },
-          {
-            "group": "Use Cases",
-            "pages": [
-              "examples/ci-cd",
-              "examples/code-review",
-              "examples/data-processing"
-            ]
-          }
-        ]
-      }
-    ]
-  }
+    },
+    "integrations": {
+        "posthog": {
+            "apiKey": "phc_PpQsQzGUakHYLJpHoyY6pi7vcFnhRGsjvz7c8Zkm3kW",
+            "sessionRecording": true
+        }
+    }
 }
