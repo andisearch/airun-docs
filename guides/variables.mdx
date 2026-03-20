@@ -66,6 +66,7 @@ Override variables from the command line using flag syntax:
 ```bash
 ./script.md --varname value
 ./script.md --varname="value with spaces"
+./script.md --varname                      # boolean — sets to "true"
 ```
 
 ### Examples
@@ -104,6 +105,12 @@ Override multiple variables:
 Equals form works too:
 ```bash
 ./summarize-topic.md --topic="robotics" --length="100 words"
+```
+
+Boolean flag (no value — sets to `"true"`):
+```bash
+./summarize-topic.md --verbose
+# Sets verbose to "true" if declared in vars
 ```
 
 ## Mixing with AI Runner Flags
@@ -191,6 +198,12 @@ vars:
   verbose: false
 ---
 Generate output in {{format}} format. Verbose mode: {{verbose}}.
+```
+
+Toggle a boolean variable from the CLI:
+```bash
+./script.md --verbose         # sets verbose to "true"
+./script.md                   # uses default "false"
 ```
 
 **Required (no default):**
@@ -336,12 +349,12 @@ cat data.csv | ./analyze-data.md --metric users --period weekly
 - Use descriptive variable names (`source_dir` not `src`)
 - Document expected values in comments
 - Keep variable names lowercase with underscores
-- Use boolean variables for feature flags (`verbose: false`)
+- Use boolean variables for feature flags (`verbose: false`) — users toggle with `--verbose`
 </Check>
 
 <Warning>
 **Don't:**
-- Use variable names that conflict with AI Runner flags (`--live`, `--aws`)
+- Use variable names that match Claude Code flags — they'll shadow the flag (prefix with your domain, e.g., `report_format` not `format`; check `claude --help` if unsure)
 - Put sensitive data in default values (use environment variables instead)
 - Create too many variables (makes scripts hard to use)
 - Use complex variable names (`target_file_for_processing` → `target_file`)
@@ -365,19 +378,23 @@ cat data.csv | ./analyze-data.md --metric users --period weekly
 
 **Solutions:**
 1. Check variable is declared in front-matter
-2. Verify flag syntax: `--topic value` or `--topic="value"`
+2. Verify flag syntax: `--topic value`, `--topic="value"`, or `--topic` (boolean)
 3. Check for typos in variable name
 4. Ensure flag comes after script name: `./script.md --topic "AI"`
+
+<Note>
+**Boolean vs value flags:** `--varname` without a following value sets the variable to `"true"`. If you intended to pass a value, make sure it follows the flag: `--topic "AI"` not just `--topic`. For values starting with `--`, use equals form: `--topic="--special"`.
+</Note>
 
 ### Conflicts with Claude Code Flags
 
 **Problem:** `--format json` is interpreted as a variable instead of a Claude Code flag
 
-**Solution:** Don't declare variables with names that match Claude Code flags. Common conflicts to avoid:
-- `--live`
-- `--quiet`
-- `--output-format`
-- `--max-turns`
+**Solution:** Variable names that match Claude Code flags will shadow them — the variable system consumes the flag before Claude Code sees it. To avoid conflicts:
+- Prefix variable names with your script's domain (e.g., `report_format` instead of `format`)
+- Check `claude --help` if unsure whether a name conflicts
+- AI Runner flags (`--live`, `--quiet`, `--aws`, `--model`, etc.) are consumed before variable matching, so they can't conflict
+- Short flags (`-c`, `-n`, `-p`) also can't conflict — variable matching only checks `--` double-dash form
 
 ## Next Steps
 
