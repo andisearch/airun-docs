@@ -40,6 +40,30 @@ These are AI Runner-specific shortcuts that expand to Claude Code's native permi
   ```
 </ParamField>
 
+<ParamField path="--auto" type="flag">
+  **Smart auto-approve** — the recommended mode for most automation
+
+  Claude Code uses an AI classifier to review each action. Safe actions proceed; risky ones (force-push, `curl | bash`, mass deletion) are blocked. Codex CLI uses sandboxed execution with network blocked.
+
+  **Short form for:**
+  - Claude Code: `--permission-mode auto`
+  - Codex CLI: `--full-auto` (workspace-write sandbox)
+
+  ```markdown
+  #!/usr/bin/env -S ai --auto
+  Run tests and fix any issues found.
+  ```
+
+  ```bash
+  ai --auto task.md              # Smart auto for any runtime
+  ai --codex --auto task.md      # Sandboxed auto with Codex
+  ```
+
+  <Note>
+    Claude Code's auto mode requires Sonnet 4.6 or Opus 4.6 and a direct Anthropic plan (Pro/Max/Teams). Not available through Bedrock, Vertex, or Foundry.
+  </Note>
+</ParamField>
+
 <ParamField path="--bypass" type="flag">
   **Bypass permission UI but show actions** - Shortcut for `--permission-mode bypassPermissions`
   

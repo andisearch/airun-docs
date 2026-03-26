@@ -5,6 +5,20 @@ description: Select model tiers or specific model IDs
 
 Model flags let you choose which AI model to use. You can select by tier (Opus, Sonnet, Haiku) or specify an exact model ID.
 
+## Cross-Runtime Model Mapping
+
+The same tier flag selects each runtime's equivalent model:
+
+| Tier | Flag | Claude Code | Codex CLI |
+|------|------|-------------|-----------|
+| High | `--opus` / `--high` | claude-opus-4-6 | gpt-5.4 |
+| Mid | `--sonnet` / `--mid` | claude-sonnet-4-6 | gpt-5.3-codex |
+| Low | `--haiku` / `--low` | claude-haiku-4-5 | gpt-5.4-mini |
+
+<Tip>
+  Tier flags work the same way regardless of runtime. `--opus` always gives you the highest-tier model for whichever runtime is active.
+</Tip>
+
 ## Tier Flags
 
 ### High Tier (Opus)
@@ -108,6 +122,7 @@ Model flags let you choose which AI model to use. You can select by tier (Opus, 
   ai --aws --model us.anthropic.claude-opus-4-6-v1:0
   ai --ollama --model qwen3-coder
   ai --vercel --model openai/gpt-5.2-codex
+  ai --codex --model gpt-5.4
   ```
   
   **Format depends on provider:**
@@ -154,6 +169,29 @@ ai --lmstudio --model mlx-qwen-32b       # Specify model name
 ```
 
 Local providers don't have default models - you must specify with `--model` or configure a default in `~/.ai-runner/secrets.sh`.
+
+### Codex CLI
+
+| Tier | Default Model |
+|------|---------------|
+| High (`--opus`, `--high`) | `gpt-5.4` |
+| Mid (`--sonnet`, `--mid`) | `gpt-5.3-codex` |
+| Low (`--haiku`, `--low`) | `gpt-5.4-mini` |
+
+**Default tier:** Mid (gpt-5.3-codex)
+
+```bash
+ai --codex                   # Uses gpt-5.3-codex
+ai --codex --opus            # Uses gpt-5.4
+ai --codex --haiku           # Uses gpt-5.4-mini
+```
+
+Override in `~/.ai-runner/secrets.sh`:
+```bash
+export CODEX_MODEL_HIGH="gpt-5.4"
+export CODEX_MODEL_MID="gpt-5.3-codex"
+export CODEX_MODEL_LOW="gpt-5.4-mini"
+```
 
 ### Vercel AI Gateway
 
@@ -329,8 +367,8 @@ ai --aws --opus --skip final-review.md
   </Accordion>
   
   <Accordion title="Tier flags don't work with Ollama">
-    Local providers (Ollama, LM Studio) don't have tier flags. Use `--model` instead:
-    
+    Tier flags work differently with local and Codex providers. For Ollama/LM Studio, you may need `--model` to specify a local model name. For Codex, tiers map to GPT models automatically.
+
     ```bash
     ai --ollama --model qwen3-coder
     ```

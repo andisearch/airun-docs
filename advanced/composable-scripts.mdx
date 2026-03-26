@@ -9,12 +9,15 @@ Composable scripts let you build complex AI workflows from simple, reusable piec
 
 ## The `--cc` Flag
 
-`--cc` is shorthand for `--tool cc`, which explicitly selects Claude Code as the backend tool. Since Claude Code is currently the only supported tool, `--cc` has no effect on its own — but it becomes meaningful when combined with other flags.
+`--cc` is shorthand for `--tool cc`, which explicitly selects Claude Code as the backend runtime. Use `--codex` for Codex CLI. When composing scripts, the runtime selection in the shebang applies to each script independently.
 
 ```bash
-ai task.md           # Auto-detects tool (Claude Code)
-ai --cc task.md      # Explicit tool selection (same result)
+ai task.md           # Auto-detects runtime (Claude Code)
+ai --cc task.md      # Explicit: Claude Code
+ai --codex task.md   # Explicit: Codex CLI
 ```
+
+`--codex` shebangs work the same way as `--cc` shebangs for composable scripts — each script in a pipeline can target a different runtime.
 
 **Key point:** `--cc` alone does NOT grant tool access. You need `--skip` or `--bypass` for that.
 

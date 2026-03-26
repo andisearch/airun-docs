@@ -43,7 +43,8 @@
                         "pages": [
                             "concepts/executable-markdown",
                             "concepts/unix-pipes",
-                            "concepts/provider-switching"
+                            "concepts/provider-switching",
+                            "concepts/runtimes"
                         ]
                     },
                     {
@@ -91,6 +92,7 @@
                     {
                         "group": "Flags",
                         "pages": [
+                            "cli/tool-flags",
                             "cli/provider-flags",
                             "cli/model-flags",
                             "cli/permission-flags",

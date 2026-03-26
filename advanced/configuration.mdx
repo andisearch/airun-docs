@@ -125,6 +125,18 @@ export LMSTUDIO_MODEL_MID="openai/gpt-oss-20b"
 export LMSTUDIO_MODEL_LOW="ibm/granite-4-micro"
 ```
 
+### Codex CLI
+
+Override default Codex model tiers in `~/.ai-runner/secrets.sh`:
+
+```bash
+export CODEX_MODEL_HIGH="gpt-5.4"
+export CODEX_MODEL_MID="gpt-5.3-codex"
+export CODEX_MODEL_LOW="gpt-5.4-mini"
+```
+
+For custom providers (Azure OpenAI, OpenRouter), configure `~/.codex/config.toml` directly. See [Runtimes](/concepts/runtimes).
+
 ## Dual Model System
 
 Claude Code uses **two models** for optimal performance and cost:
@@ -217,6 +229,8 @@ ai --clear-default
 AI_DEFAULT_PROVIDER="aws"
 AI_DEFAULT_MODEL_TIER="high"           # From --opus
 AI_DEFAULT_CUSTOM_MODEL=""             # From --model (if used)
+AI_DEFAULT_TOOL="codex"                # From --codex (if used)
+AI_DEFAULT_EFFORT="high"               # From --effort (if used)
 AI_DEFAULT_TEAM_MODE="enabled"         # From --team (if used)
 AI_DEFAULT_TEAMMATE_MODE="tmux"        # From --teammate-mode (if used)
 ```
@@ -397,6 +411,7 @@ This preserves your `secrets.sh` and prompts about updating `models.sh`.
 | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | Enable agent teams | `--team` flag |
 | `AI_LIVE_OUTPUT` | Enable live streaming | `--live` flag |
 | `AI_QUIET` | Suppress narration | `--quiet` flag |
+| `EFFORT_LEVEL` | Reasoning effort level | `--effort` flag |
 | `AI_SESSION_ID` | Unique session identifier | Generated per session |
 
 ### User Configuration Variables (Set in secrets.sh)

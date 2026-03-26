@@ -15,27 +15,30 @@ This guide covers installation, configuration, and verification of Andi AIRun on
 
 ## Prerequisites
 
-Before installing AIRun, you need [Claude Code](https://claude.ai/code) installed on your system.
+AIRun requires at least one AI runtime — [Claude Code](https://claude.ai/code) or [Codex CLI](https://developers.openai.com/codex/cli). Install one or both:
 
 <Steps>
-  <Step title="Check if Claude Code is installed">
-    ```bash
-    claude --version
-    ```
-    
-    If this command works, you already have Claude Code installed and can skip to the next section.
-  </Step>
-
-  <Step title="Install Claude Code">
-    If Claude Code is not installed, run:
-    
+  <Step title="Install a runtime">
+    **Claude Code** (Anthropic — default runtime):
     ```bash
     curl -fsSL https://claude.ai/install.sh | bash
     ```
-    
-    <Note>
-      You'll need an active Claude subscription (Pro or Max) or API credentials to use Claude Code.
-    </Note>
+
+    **Codex CLI** (OpenAI — alternative runtime):
+    ```bash
+    npm install -g @openai/codex
+    ```
+
+    <Tip>
+      If both are installed, AIRun uses Claude Code by default. Use `--codex` to select Codex, or `ai --codex --set-default` to make it your default.
+    </Tip>
+  </Step>
+
+  <Step title="Verify your runtime">
+    ```bash
+    claude --version    # Claude Code
+    codex --version     # Codex CLI
+    ```
   </Step>
 </Steps>
 

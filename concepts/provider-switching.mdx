@@ -33,6 +33,24 @@ Providers are different backend services that run AI models. Each provider has i
 Providers are configured once in `~/.ai-runner/secrets.sh` and switched with simple flags. No need to edit config files or set environment variables.
 </Info>
 
+## Cross-Runtime Providers
+
+Provider flags work across runtimes where possible:
+
+| Flag | Claude Code | Codex CLI |
+|------|-------------|-----------|
+| `--ollama` | Ollama (Anthropic-compat API) | Ollama (`--oss`) |
+| `--lmstudio` | LM Studio (Anthropic-compat) | LM Studio (`--oss`) |
+| `--azure` | Azure Foundry (Anthropic) | Azure OpenAI (GPT) |
+| `--aws`, `--vertex`, `--vercel`, `--pro` | Supported | Not supported |
+
+For Codex-specific providers (OpenRouter, Mistral, etc.), use `--profile`:
+```bash
+ai --codex --profile openrouter task.md
+```
+
+See [Runtimes](/concepts/runtimes) for the complete compatibility matrix.
+
 ## Why Switch Providers?
 
 There are several reasons to switch providers mid-task:

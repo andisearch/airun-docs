@@ -9,15 +9,16 @@ Get AIRun running in 5 minutes. This guide will help you install AIRun, create y
 
 ## Prerequisites
 
-Before you begin, make sure you have [Claude Code](https://claude.ai/code) installed. AIRun extends Claude Code with executable markdown and provider switching.
+Before you begin, make sure you have at least one AI runtime installed — [Claude Code](https://claude.ai/code) or [Codex CLI](https://developers.openai.com/codex/cli). AIRun works with either.
 
 ```bash
-# Install Claude Code (if not already installed)
-curl -fsSL https://claude.ai/install.sh | bash
+# Install a runtime (one or both)
+curl -fsSL https://claude.ai/install.sh | bash   # Claude Code (Anthropic)
+npm install -g @openai/codex                      # Codex CLI (OpenAI)
 ```
 
 <Note>
-  Claude Code is Anthropic's AI coding CLI. You'll need an active Claude subscription (Pro or Max) or API credentials to use it.
+  You need an active Claude subscription or Codex/OpenAI account. AIRun auto-detects which runtime is available.
 </Note>
 
 ## Installation

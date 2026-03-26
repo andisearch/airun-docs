@@ -5,6 +5,17 @@ description: Understanding AI providers in Andi AIRun
 
 Andi AIRun supports multiple AI providers, allowing you to choose between local models (free, private) and cloud APIs (powerful, scalable).
 
+## Runtimes
+
+AI Runner supports multiple runtimes. Provider availability depends on the runtime:
+
+| Runtime | Flag | Providers |
+|---------|------|-----------|
+| Claude Code | `--cc` (default) | All Anthropic providers: AWS, Vertex, Azure Foundry, Vercel, Anthropic API, Pro, Ollama, LM Studio |
+| Codex CLI | `--codex` | OpenAI API, Azure OpenAI, Ollama, LM Studio, config.toml profiles |
+
+See [Runtimes](/concepts/runtimes) for the full compatibility reference.
+
 ## Quick Reference
 
 | Flag | Provider | Type | Notes |
@@ -17,6 +28,10 @@ Andi AIRun supports multiple AI providers, allowing you to choose between local 
 | `--azure` | Microsoft Azure | Cloud | Azure Foundry |
 | `--vercel` | Vercel AI Gateway | Cloud | Any model: Anthropic, OpenAI, xAI, Google, Meta, more |
 | `--pro` | Claude Pro | Subscription | Default if logged in |
+
+<Note>
+  Ollama, LM Studio, and Azure work with both runtimes. AWS, Vertex, Vercel, and Pro are Claude Code only. Codex custom providers use `--profile`. See [Runtimes](/concepts/runtimes).
+</Note>
 
 ## How Configuration Works
 
@@ -50,7 +65,7 @@ This means you can safely run `ai --lmstudio` in one terminal while using `claud
 
 ### Automatic Provider Selection
 
-If you don't specify a provider flag, Andi AIRun automatically detects and uses:
+AI Runner first detects which runtime to use (Claude Code or Codex CLI), then selects the appropriate provider. If you don't specify a provider flag, Andi AIRun automatically detects and uses:
 
 1. **Claude Pro** (if logged in with `claude login`)
 2. **First configured provider** in secrets.sh

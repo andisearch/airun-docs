@@ -1,0 +1,168 @@
+---
+title: Tool, Effort & Profile Flags
+description: Select your runtime, control reasoning depth, and choose provider profiles
+---
+
+Flags for selecting the AI runtime, controlling reasoning effort, and choosing provider configurations.
+
+## Runtime Selection
+
+<ParamField path="--tool" type="flag">
+  **Select AI runtime** by name
+
+  ```bash
+  ai --tool cc task.md        # Claude Code
+  ai --tool codex task.md     # Codex CLI
+  ```
+
+  If not specified, AI Runner auto-detects: tries Claude Code first, falls back to Codex CLI.
+</ParamField>
+
+<ParamField path="--cc" type="flag">
+  **Claude Code** — Anthropic's AI coding CLI (default if installed)
+
+  ```bash
+  ai --cc                     # Interactive Claude Code session
+  ai --cc --aws --opus        # Claude Code with AWS Bedrock
+  ai --cc task.md             # Execute script with Claude Code
+  ```
+
+  Shorthand for `--tool cc`. This is the default runtime when both are installed.
+</ParamField>
+
+<ParamField path="--codex" type="flag">
+  **Codex CLI** — OpenAI's coding agent
+
+  ```bash
+  ai --codex                  # Interactive Codex session
+  ai --codex --high           # Codex with gpt-5.4
+  ai --codex task.md          # Execute script with Codex
+  ai --codex --ollama         # Codex with local Ollama
+  ```
+
+  Shorthand for `--tool codex`.
+
+  **Authentication:** Codex uses browser login by default (`codex login`). Set `OPENAI_API_KEY` or `CODEX_API_KEY` for API key auth, or use `--apikey` to require it.
+
+  **Install:**
+  ```bash
+  npm install -g @openai/codex
+  # Or on macOS:
+  brew install --cask codex
+  ```
+</ParamField>
+
+## Effort Level
+
+<ParamField path="--effort" type="flag">
+  **Reasoning effort** — control how deeply the model thinks
+
+  ```bash
+  ai --effort low task.md       # Minimal reasoning (fast)
+  ai --effort medium task.md    # Balanced (default)
+  ai --effort high task.md      # Deep reasoning
+  ai --effort max task.md       # Maximum reasoning
+  ```
+
+  Works with both runtimes. AI Runner maps to each tool's native format:
+
+  | AI Runner | Claude Code | Codex CLI |
+  |-----------|-------------|-----------|
+  | `low` | `--effort low` | `-c model_reasoning_effort=low` |
+  | `medium` | `--effort medium` | `-c model_reasoning_effort=medium` |
+  | `high` | `--effort high` | `-c model_reasoning_effort=high` |
+  | `max` | `--effort max` (Opus only) | `-c model_reasoning_effort=xhigh` |
+
+  **Note:** Claude Code's `max` is Opus 4.6 only. Codex has additional levels (`none`, `minimal`) not exposed via AI Runner.
+
+  Combine with other flags:
+  ```bash
+  ai --codex --high --effort max task.md
+  ai --aws --opus --effort high task.md
+  ```
+
+  Save as default:
+  ```bash
+  ai --effort high --set-default
+  ```
+</ParamField>
+
+## Provider Profile
+
+<ParamField path="--profile" type="flag">
+  **Select a config profile** — Codex CLI only
+
+  ```bash
+  ai --codex --profile azure task.md        # Azure OpenAI
+  ai --codex --profile openrouter task.md   # OpenRouter
+  ```
+
+  Selects a named profile from `~/.codex/config.toml`. Use this for providers that aren't built into AI Runner's flag system (OpenRouter, Mistral, DeepSeek, xAI, Groq, etc.).
+
+  **Setup** — configure profiles in `~/.codex/config.toml`:
+  ```toml
+  [profiles.azure]
+  model_provider = "azure"
+  model = "gpt-5.3-codex"
+
+  [model_providers.azure]
+  name = "Azure OpenAI"
+  base_url = "https://YOUR_RESOURCE.openai.azure.com/openai/v1"
+  env_key = "AZURE_OPENAI_API_KEY"
+
+  [model_providers.openrouter]
+  name = "OpenRouter"
+  base_url = "https://openrouter.ai/api/v1"
+  env_key = "OPENROUTER_API_KEY"
+  ```
+
+  See the [Codex CLI docs](https://developers.openai.com/codex/cli) for the full config reference.
+</ParamField>
+
+## Examples
+
+### Save Runtime as Default
+
+```bash
+# Always use Codex with the flagship model
+ai --codex --high --set-default
+
+# Always use Claude Code on AWS
+ai --cc --aws --opus --set-default
+
+# Clear — back to auto-detect
+ai --clear-default
+```
+
+### Shebang Scripts
+
+```markdown
+#!/usr/bin/env -S ai --codex --high --effort high
+Deep analysis of this codebase architecture.
+```
+
+```markdown
+#!/usr/bin/env -S ai --cc --opus --effort max
+Maximum reasoning for this security audit.
+```
+
+### Combining Flags
+
+```bash
+# Codex with Azure OpenAI profile and high effort
+ai --codex --profile azure --effort high task.md
+
+# Claude Code with AWS, Opus, and auto permissions
+ai --aws --opus --effort high --auto task.md
+```
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Runtimes" icon="shuffle" href="/concepts/runtimes">
+    Full cross-interpreter compatibility reference
+  </Card>
+  <Card title="Provider Flags" icon="cloud" href="./provider-flags">
+    Switch between cloud providers
+  </Card>
+</CardGroup>

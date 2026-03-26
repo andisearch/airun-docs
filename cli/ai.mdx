@@ -1,9 +1,9 @@
 ---
 title: ai
-description: Universal AI prompt interpreter and Claude Code wrapper
+description: Universal AI prompt interpreter — runs Claude Code and Codex CLI with a single command
 ---
 
-The `ai` command is the primary entry point for Andi AIRun. It runs AI prompts as scripts, provides executable markdown with shebang support, and enables cross-cloud provider switching.
+The `ai` command is the primary entry point for Andi AIRun. It supports multiple AI runtimes (Claude Code, Codex CLI), runs AI prompts as scripts, provides executable markdown with shebang support, and enables cross-cloud provider switching.
 
 ## Syntax
 
@@ -23,6 +23,8 @@ ai                                        # Regular Claude subscription
 ai --aws --opus --team                    # AWS Bedrock with Opus + Agent Teams
 ai --ollama --bypass                      # Ollama local with bypassPermissions
 ai --vercel --model openai/gpt-5.2-codex  # Vercel AI Gateway
+ai --codex                                # Codex CLI with OpenAI API
+ai --codex --high --effort max            # Codex with flagship model + max reasoning
 ```
 
 Interactive mode launches Claude Code with your selected provider and model configuration. The session is automatically restored to your original settings on exit.
@@ -190,7 +192,7 @@ Override from CLI:
 </ParamField>
 
 <ParamField path="--set-default" type="flag">
-  Save current provider+model as persistent default:
+  Save current runtime+provider+model as persistent default:
   
   ```bash
   ai --aws --opus --set-default
@@ -232,14 +234,59 @@ Override from CLI:
 </ParamField>
 
 <ParamField path="--tool" type="flag">
-  Select the underlying AI tool:
-  
+  Select the underlying AI runtime:
+
   ```bash
   ai --tool cc               # Claude Code (default)
-  ai --cc                    # Shorthand for --tool cc
+  ai --tool codex            # Codex CLI (OpenAI)
+  ai --cc                    # Shorthand for Claude Code
+  ai --codex                 # Shorthand for Codex CLI
   ```
-  
-  Currently only Claude Code is supported. The `--cc` flag is a shortcut for `--tool cc`.
+
+  Auto-detects if not specified: tries Claude Code first, falls back to Codex.
+</ParamField>
+
+<ParamField path="--codex" type="flag">
+  Shorthand for `--tool codex` (Codex CLI):
+
+  ```bash
+  ai --codex                 # Interactive Codex session
+  ai --codex task.md         # Script mode with Codex
+  ai --codex --high          # Codex with gpt-5.4
+  ```
+</ParamField>
+
+<ParamField path="--effort" type="flag">
+  Set reasoning effort level:
+
+  ```bash
+  ai --effort low task.md      # Minimal reasoning
+  ai --effort high task.md     # Deep reasoning
+  ai --effort max task.md      # Maximum (Opus only for Claude Code)
+  ```
+
+  Works with both runtimes. See [Tool Flags](/cli/tool-flags) for the mapping table.
+</ParamField>
+
+<ParamField path="--profile" type="flag">
+  Select a Codex CLI config profile (Codex only):
+
+  ```bash
+  ai --codex --profile azure task.md
+  ai --codex --profile openrouter task.md
+  ```
+
+  See [Tool Flags](/cli/tool-flags) for configuration details.
+</ParamField>
+
+<ParamField path="--auto" type="flag">
+  Smart auto-approve (AI classifier for Claude Code, sandbox for Codex):
+
+  ```bash
+  ai --auto task.md           # Auto-approve safe actions
+  ```
+
+  **Short form for:** Claude Code: `--permission-mode auto`, Codex: `--full-auto`
 </ParamField>
 
 <ParamField path="--version" type="flag">
@@ -271,7 +318,7 @@ AI Runner uses session-scoped configuration:
 
 ## Passthrough Flags
 
-Any flag not recognized by AI Runner is forwarded to Claude Code unchanged:
+Any flag not recognized by AI Runner is forwarded to the underlying runtime unchanged:
 
 ```bash
 ai --verbose task.md                    # --verbose passed to Claude Code
@@ -281,7 +328,7 @@ ai --chrome --live test-flow.md         # --chrome passed through
 
 ## Exit Codes
 
-`ai` exits with the same code as the underlying tool (Claude Code). A non-zero exit means the tool reported an error.
+`ai` exits with the same code as the underlying runtime. A non-zero exit means the runtime reported an error.
 
 ## Related Commands
 

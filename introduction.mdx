@@ -8,13 +8,16 @@ description: Run AI prompts like programs with executable markdown, Unix pipes, 
 Run AI prompts like programs. Executable markdown with shebang, Unix pipes, and output redirection. Extends Claude Code with cross-cloud provider switching and any-model support - free local or 100+ cloud models.
 
 ```bash
-# Run Claude Code interactively: any model or provider
+# Claude Code: any model or provider
 ai                                        # Regular Claude subscription (Pro, Max)
 ai --aws --opus --team --resume           # Resume chats on AWS w/ Opus 4.6 + Agent Teams
-ai --ollama --bypass --model qwen3-coder  # Ollama local model with bypassPermissions set
-ai --vercel --model openai/gpt-5.2-codex  # Vercel AI Gateway with 100+ models
 
-# Run prompts like programs
+# Codex CLI: OpenAI's coding agent
+ai --codex                                # Codex with OpenAI API (gpt-5.3-codex)
+ai --codex --high                         # Codex with gpt-5.4 (flagship)
+ai --codex --ollama                       # Codex with local Ollama models
+
+# Run prompts like programs (works with any runtime)
 ai --azure --haiku script.md
 
 # Script automation
@@ -38,7 +41,7 @@ cat data.json | ./analyze.md > results.txt
 
 ## Overview
 
-Switch between your [Claude Code](https://claude.ai/code) subscription and different clouds + models: AWS Bedrock, Google Vertex, Azure, Vercel + Anthropic API. Supports free local models ([Ollama](https://ollama.com/), [LM Studio](https://lmstudio.ai/)) and 100+ alternate cloud models via [Vercel AI Gateway](https://vercel.com/ai-gateway) or Ollama Cloud. Swap and resume conversations mid-task to avoid rate limits and keep working.
+Choose your runtime — [Claude Code](https://claude.ai/code) or [Codex CLI](https://developers.openai.com/codex/cli) — and switch between clouds + models: AWS Bedrock, Google Vertex, Azure, Vercel + Anthropic API. Supports free local models ([Ollama](https://ollama.com/), [LM Studio](https://lmstudio.ai/)) and 100+ alternate cloud models via [Vercel AI Gateway](https://vercel.com/ai-gateway) or Ollama Cloud. Swap and resume conversations mid-task to avoid rate limits and keep working.
 
 ## Key Features
 
@@ -121,16 +124,27 @@ Switch between your [Claude Code](https://claude.ai/code) subscription and diffe
     ./summarize.md --topic "AI safety"      # overrides one variable
     ```
   </Accordion>
+
+  <Accordion title="Multiple Runtimes" icon="shuffle">
+    Choose between Claude Code (Anthropic) and Codex CLI (OpenAI). Same flags, same shebangs — AI Runner handles the mapping.
+
+    ```bash
+    ai --cc task.md              # Claude Code
+    ai --codex task.md           # Codex CLI
+    ai --codex --high task.md    # Codex with gpt-5.4
+    ```
+  </Accordion>
 </AccordionGroup>
 
 ## What it Does
 
+- **Multiple runtimes**: Claude Code and Codex CLI with a single `ai` command (`--cc`, `--codex`)
 - **Executable markdown** with `#!/usr/bin/env ai` shebang for script automation
 - **Unix pipe support**: pipe data into scripts, redirect output, chain in pipelines
 - **Cross-cloud provider switching**: use Claude on AWS, Vertex, Azure, Anthropic API + switch mid-conversation to bypass rate limits. Also supports local models and Vercel AI Gateway
 - **Model tiers**: `--opus`/`--high`, `--sonnet`/`--mid`, `--haiku`/`--low`
 - **Session continuity**: `--resume` picks up your previous chats with any model/provider
-- **Non-destructive**: plain `claude` always works untouched as before
+- **Non-destructive**: plain `claude` and `codex` always work untouched as before
 
 <Note>
   From [Andi AI Search](https://andisearch.com). Star the [GitHub repo](https://github.com/andisearch/airun) if it helps!
@@ -154,6 +168,7 @@ Switch between your [Claude Code](https://claude.ai/code) subscription and diffe
 | Microsoft Azure | `--azure` | Cloud | Azure Foundry |
 | Vercel AI Gateway | `--vercel` | Cloud | Any model: OpenAI, xAI, Google, Meta, more |
 | Claude Pro | `--pro` | Subscription | Default if logged in |
+| Codex CLI | `--codex` | OpenAI | OpenAI API, browser auth, or config.toml profiles |
 
 ## Next Steps
 

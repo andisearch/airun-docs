@@ -29,11 +29,25 @@ The AI cannot:
 Analyze this codebase and summarize the architecture.
 ```
 
+### Auto Mode (`--auto`)
+
+Smart auto-approve. The runtime decides which actions are safe:
+- **Claude Code**: AI classifier reviews each action. Safe actions proceed; risky ones (force-push, `curl | bash`, mass deletion) are blocked.
+- **Codex CLI**: Sandboxed execution. File writes allowed in workspace, network blocked.
+
+**When to use:** You want automation without manual approval but with safety guardrails. The recommended mode for most scripting.
+
+**Example:**
+```markdown
+#!/usr/bin/env -S ai --auto
+Refactor the authentication module and run tests.
+```
+
 ### Bypass Mode (`--bypass`)
 
-Shortcut for `--permission-mode bypassPermissions`. Grants full access through the permission mode system. Composable with other Claude Code settings.
+Shortcut for `--permission-mode bypassPermissions`. Grants full access through the permission mode system. No safety classifier or sandbox restrictions.
 
-**When to use:** Standard automation where you need full access and may want to compose with other permission settings.
+**When to use:** Standard automation where you need full access and trust the script completely.
 
 **Example:**
 ```markdown

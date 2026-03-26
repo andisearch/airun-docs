@@ -1,0 +1,214 @@
+---
+title: Runtimes
+description: Choose your AI coding tool — Claude Code or Codex CLI — with a single unified interface
+---
+
+# Runtimes
+
+AI Runner provides a **single interface** across AI coding tools. Pick your runtime once, and the same flags, shebangs, and scripts work identically. AI Runner handles the mapping.
+
+## Supported Runtimes
+
+| Runtime | Flag | Default Model | Ecosystem | Install |
+|---------|------|---------------|-----------|---------|
+| [Claude Code](https://claude.ai/code) | `--cc` | claude-sonnet-4-6 | Anthropic | `curl -fsSL https://claude.ai/install.sh \| bash` |
+| [Codex CLI](https://developers.openai.com/codex/cli) | `--codex` | gpt-5.3-codex | OpenAI | `npm install -g @openai/codex` |
+
+Claude Code is the default when both are installed. If only Codex is installed, it becomes the default automatically.
+
+## Selecting a Runtime
+
+```bash
+# Auto-detect (tries Claude Code first, falls back to Codex)
+ai task.md
+
+# Explicit selection
+ai --cc task.md           # Claude Code
+ai --codex task.md        # Codex CLI
+
+# Save as default
+ai --codex --set-default  # Always use Codex
+ai --clear-default        # Reset to auto-detect
+```
+
+In shebangs:
+```markdown
+#!/usr/bin/env -S ai --codex --high
+Analyze this codebase with OpenAI's flagship model.
+```
+
+## Universal Flags
+
+Most flags work identically with both runtimes. AI Runner maps them to each tool's native equivalents:
+
+| Category | Flags | Behavior |
+|----------|-------|----------|
+| Model tiers | `--opus`/`--high`, `--sonnet`/`--mid`, `--haiku`/`--low` | Mapped to each runtime's models |
+| Custom model | `--model <id>` | Passed to runtime's model flag |
+| Effort | `--effort <low\|medium\|high\|max>` | Controls reasoning depth |
+| Local providers | `--ollama`, `--lmstudio` | Both runtimes support local models |
+| Azure | `--azure` | Maps to each runtime's Azure service |
+| Permissions | `--auto`, `--bypass`, `--skip` | Mapped to each runtime's equivalents |
+| Resume | `--resume` | Resume previous conversation |
+| Streaming | `--live`, `--quiet` | Real-time output with heartbeat |
+| Defaults | `--set-default`, `--clear-default` | Persists tool + provider + model |
+| Scripting | Shebangs, variables, pipes, stdin | Identical behavior |
+
+## Cross-Interpreter Model Tiers
+
+The same tier flag selects each runtime's equivalent model:
+
+| Tier | Flag | Claude Code | Codex CLI |
+|------|------|-------------|-----------|
+| High | `--opus` / `--high` | claude-opus-4-6 | gpt-5.4 |
+| Mid | `--sonnet` / `--mid` | claude-sonnet-4-6 | gpt-5.3-codex |
+| Low | `--haiku` / `--low` | claude-haiku-4-5 | gpt-5.4-mini |
+
+```bash
+ai --high task.md           # Claude Code: Opus 4.6
+ai --codex --high task.md   # Codex: gpt-5.4
+```
+
+## Cross-Interpreter Effort Levels
+
+Control how deeply the model reasons:
+
+| AI Runner | Claude Code | Codex CLI |
+|-----------|-------------|-----------|
+| `--effort low` | `--effort low` | `-c model_reasoning_effort=low` |
+| `--effort medium` | `--effort medium` | `-c model_reasoning_effort=medium` |
+| `--effort high` | `--effort high` | `-c model_reasoning_effort=high` |
+| `--effort max` | `--effort max` | `-c model_reasoning_effort=xhigh` |
+
+```bash
+ai --effort high task.md          # Claude Code: deeper reasoning
+ai --codex --effort max task.md   # Codex: maximum reasoning (xhigh)
+```
+
+## Cross-Interpreter Providers
+
+| Flag | Claude Code | Codex CLI |
+|------|-------------|-----------|
+| `--ollama` | Ollama (Anthropic-compat API) | Ollama (`--oss`) |
+| `--lmstudio` | LM Studio (Anthropic-compat) | LM Studio (`--oss`) |
+| `--azure` | Azure Foundry (Anthropic models) | Azure OpenAI (GPT models) |
+| `--apikey` | Anthropic API key | Force OpenAI API key (vs browser auth) |
+| `--aws` | AWS Bedrock | *Not supported* |
+| `--vertex` | Google Vertex AI | *Not supported* |
+| `--vercel` | Vercel AI Gateway | *Not supported* |
+| `--pro` | Claude Pro subscription | *Not supported* |
+| `--profile` | *Not supported* | Config.toml profile (OpenRouter, Mistral, etc.) |
+
+<Note>
+`--azure` maps to different services per runtime: Azure Foundry (Anthropic) for Claude Code, Azure OpenAI (GPT) for Codex. The user writes the same flag; AI Runner handles the translation.
+</Note>
+
+## Cross-Interpreter Permissions
+
+| AI Runner | Claude Code | Codex CLI | Safety Level |
+|-----------|-------------|-----------|-------------|
+| *(default)* | Ask for approval | Ask for approval | Manual |
+| `--auto` | AI classifier decides | Sandboxed auto | Smart auto |
+| `--bypass` | All auto, no classifier | Sandboxed auto | Permissive |
+| `--skip` | Zero safety checks | Zero safety + no sandbox | Nuclear |
+
+<Warning>
+`--skip` bypasses ALL safety on both runtimes. Only use with trusted scripts in trusted directories.
+</Warning>
+
+## Runtime-Specific Features
+
+### Claude Code Only
+
+These flags require Claude Code and will error with Codex:
+
+- `--aws` — AWS Bedrock
+- `--vertex` — Google Vertex AI
+- `--vercel` — Vercel AI Gateway
+- `--pro` — Claude Pro subscription
+- `--team` — Agent Teams
+- `--chrome` — Browser automation
+
+### Codex CLI Only
+
+- `--profile <name>` — Select a named config profile from `~/.codex/config.toml`
+
+```bash
+ai --codex --profile openrouter task.md
+ai --codex --profile azure task.md
+```
+
+Configure profiles in `~/.codex/config.toml`:
+```toml
+[model_providers.openrouter]
+name = "OpenRouter"
+base_url = "https://openrouter.ai/api/v1"
+env_key = "OPENROUTER_API_KEY"
+
+[model_providers.azure]
+name = "Azure OpenAI"
+base_url = "https://YOUR_RESOURCE.openai.azure.com/openai/v1"
+env_key = "AZURE_OPENAI_API_KEY"
+```
+
+## Authentication
+
+### Claude Code
+
+Uses Anthropic authentication:
+- Claude Pro/Max subscription (browser login)
+- API key (`ANTHROPIC_API_KEY`)
+- Cloud provider credentials (AWS, GCP, Azure)
+
+### Codex CLI
+
+Uses OpenAI authentication:
+- **Browser login** (default): Run `codex login` once, then Codex uses stored tokens
+- **API key**: Set `OPENAI_API_KEY` or `CODEX_API_KEY` in environment or `~/.ai-runner/secrets.sh`
+- Use `--apikey` to force API key mode (for CI/CD)
+
+```bash
+# Browser auth (default — no env var needed)
+ai --codex task.md
+
+# Force API key auth
+ai --codex --apikey task.md
+```
+
+## Same Script, Both Runtimes
+
+A script written for one runtime works on the other:
+
+```markdown
+#!/usr/bin/env -S ai --high
+Analyze the architecture of this codebase and summarize the key patterns.
+```
+
+```bash
+./analyze.md                  # Uses default runtime
+ai --cc ./analyze.md          # Force Claude Code
+ai --codex ./analyze.md       # Force Codex CLI
+```
+
+The runtime selection is orthogonal to the script content. Model tiers, effort levels, permissions, and streaming all adapt automatically.
+
+## Script Portability
+
+Scripts are portable across runtimes. If a script includes interpreter-specific flags, running it on another runtime produces a warning but continues normally:
+
+```bash
+# Script with Claude Code-specific --chrome flag
+#!/usr/bin/env -S ai --auto --chrome
+Test the login flow in the browser.
+```
+
+Running this with Codex:
+```bash
+ai --codex ./test-login.md
+# [AI Runner] Warning: --chrome is not supported by Codex CLI, ignoring
+# (script runs normally without browser automation)
+```
+
+AI Runner uses a **flag firewall** that discovers each tool's supported flags from `--help` output and caches them by version. Unsupported flags are warned and skipped. Flag+value pairs (like `--max-turns 5`) are skipped together.
+
+This means you can write scripts that use the full power of one runtime and safely run them on another — they degrade gracefully instead of failing.

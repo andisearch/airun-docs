@@ -5,6 +5,10 @@ description: Switch between Claude subscriptions and cloud providers
 
 Provider flags let you switch between different AI providers and models on the fly. Use your Claude subscription, cloud platforms, or local models without changing configuration files.
 
+<Note>
+  Most provider flags work with both Claude Code and Codex CLI. Each flag entry notes which runtimes support it. See [Runtimes](/concepts/runtimes) for the full compatibility matrix.
+</Note>
+
 ## Available Providers
 
 ### Local Providers (Free)
@@ -20,7 +24,9 @@ Provider flags let you switch between different AI providers and models on the f
   ```
   
   **Short form:** `--ol`
-  
+
+  **Runtimes:** Claude Code, Codex CLI
+
   **Setup:**
   ```bash
   brew install ollama              # macOS
@@ -45,7 +51,9 @@ Provider flags let you switch between different AI providers and models on the f
   ```
   
   **Short form:** `--lm`
-  
+
+  **Runtimes:** Claude Code, Codex CLI
+
   **Setup:**
   1. Download LM Studio from [lmstudio.ai](https://lmstudio.ai)
   2. Load a model in the UI
@@ -69,16 +77,18 @@ Provider flags let you switch between different AI providers and models on the f
   ai --aws --haiku --resume
   ```
   
+  **Runtimes:** Claude Code only
+
   **Setup in `~/.ai-runner/secrets.sh`:**
   ```bash
   export AWS_PROFILE="your-profile-name"
   export AWS_REGION="us-west-2"
   ```
-  
+
   **Authentication:**
   - AWS credentials file (`~/.aws/credentials`)
   - Or IAM role (for EC2/ECS)
-  
+
   See [Cloud Providers](/providers/cloud) for details.
 </ParamField>
 
@@ -91,16 +101,18 @@ Provider flags let you switch between different AI providers and models on the f
   ai --vertex --sonnet --resume
   ```
   
+  **Runtimes:** Claude Code only
+
   **Setup in `~/.ai-runner/secrets.sh`:**
   ```bash
   export ANTHROPIC_VERTEX_PROJECT_ID="your-gcp-project-id"
   export CLOUD_ML_REGION="global"
   ```
-  
+
   **Authentication:**
   - Application default credentials (`gcloud auth application-default login`)
   - Or service account key file
-  
+
   See [Cloud Providers](/providers/cloud) for details.
 </ParamField>
 
@@ -112,20 +124,24 @@ Provider flags let you switch between different AI providers and models on the f
   ai --apikey --opus task.md
   ```
   
+  **Runtimes:** Claude Code (Anthropic API), Codex CLI (forces OpenAI API key auth)
+
   **Setup in `~/.ai-runner/secrets.sh`:**
   ```bash
   export ANTHROPIC_API_KEY="sk-ant-..."
   ```
-  
+
   **Authentication:**
   - API key from [console.anthropic.com](https://console.anthropic.com)
-  
+
   See [Cloud Providers](/providers/cloud) for details.
 </ParamField>
 
 <ParamField path="--azure" type="flag">
-  **Microsoft Azure** - Claude models on Azure Foundry
-  
+  **Microsoft Azure** — Claude Code: Azure Foundry (Anthropic models) / Codex CLI: Azure OpenAI (GPT models)
+
+  **Runtimes:** Claude Code, Codex CLI (different services)
+
   ```bash
   ai --azure
   ai --azure task.md
@@ -153,6 +169,8 @@ Provider flags let you switch between different AI providers and models on the f
   ai --vercel --model google/gemini-exp-2506
   ```
   
+  **Runtimes:** Claude Code only
+
   **Setup in `~/.ai-runner/secrets.sh`:**
   ```bash
   export VERCEL_AI_GATEWAY_TOKEN="vck_..."
@@ -180,9 +198,11 @@ Provider flags let you switch between different AI providers and models on the f
   ai --pro --resume
   ```
   
+  **Runtimes:** Claude Code only
+
   **Authentication:**
   - Claude subscription (log in with `claude`)
-  
+
   **Note:** This is the default if you're logged in and don't specify another provider.
 </ParamField>
 
@@ -306,6 +326,14 @@ ai --apikey --haiku analyze.md
 # Rate-limited: fall back to different provider
 ai --aws --resume  # Continue after hitting Pro rate limit
 ```
+
+## Provider-Gated Flags
+
+Some passthrough flags only work with specific providers:
+
+<Warning>
+  **`--chrome`** requires a direct Anthropic plan (Pro, Max, Teams, Enterprise). It does not work through Bedrock, Vertex, Azure Foundry, Ollama, or LM Studio. AI Runner warns when `--chrome` is used with incompatible providers.
+</Warning>
 
 ## Related Pages
 
