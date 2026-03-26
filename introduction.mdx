@@ -9,11 +9,11 @@ Run AI prompts like programs. Executable markdown with shebang, Unix pipes, and 
 
 ```bash
 # Claude Code: any model or provider
-ai                                        # Regular Claude subscription (Pro, Max)
+ai                                        # System default (matches your claude config)
 ai --aws --opus --team --resume           # Resume chats on AWS w/ Opus 4.6 + Agent Teams
 
 # Codex CLI: OpenAI's coding agent
-ai --codex                                # Codex with OpenAI API (gpt-5.3-codex)
+ai --codex                                # Codex with gpt-5.4 (default)
 ai --codex --high                         # Codex with gpt-5.4 (flagship)
 ai --codex --ollama                       # Codex with local Ollama models
 

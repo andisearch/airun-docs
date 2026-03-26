@@ -65,7 +65,9 @@ This means you can safely run `ai --lmstudio` in one terminal while using `claud
 
 ### Automatic Provider Selection
 
-AI Runner first detects which runtime to use (Claude Code or Codex CLI), then selects the appropriate provider. If you don't specify a provider flag, Andi AIRun automatically detects and uses:
+When no provider flag is given and no default is saved, AI Runner operates in **passthrough mode** — it doesn't load a provider or modify your environment. `claude` sees the same auth configuration as if run directly.
+
+When a provider IS needed (explicit flag, saved default, or `DEFAULT_PROVIDER` in secrets.sh), auto-detection uses:
 
 1. **Claude Pro** (if logged in with `claude login`)
 2. **First configured provider** in secrets.sh
@@ -92,8 +94,8 @@ Andi AIRun uses a three-tier model system to balance performance and cost:
 
 | Tier | Aliases | Use Case | Claude Models |
 |------|---------|----------|---------------|
-| **High** | `--opus`, `--high` | Complex reasoning, large refactors | Claude Opus 4.6 |
-| **Mid** | `--sonnet`, `--mid` | General coding tasks (default) | Claude Sonnet 4.6 |
+| **High** | `--opus`, `--high` | Complex reasoning, large refactors (default) | Claude Opus 4.6 |
+| **Mid** | `--sonnet`, `--mid` | Cost-conscious coding tasks | Claude Sonnet 4.6 |
 | **Low** | `--haiku`, `--low` | Fast operations, small edits | Claude Haiku 4.5 |
 
 ### Usage Examples
@@ -102,7 +104,7 @@ Andi AIRun uses a three-tier model system to balance performance and cost:
 # Use high tier for complex reasoning
 ai --aws --opus task.md
 
-# Use mid tier (default)
+# Use high tier (default)
 ai --aws task.md
 
 # Use low tier for speed and cost savings

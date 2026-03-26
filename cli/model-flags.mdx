@@ -54,24 +54,22 @@ The same tier flag selects each runtime's equivalent model:
 ### Mid Tier (Sonnet)
 
 <ParamField path="--sonnet" type="flag">
-  **Mid-tier model** - Balanced capability and speed (default)
-  
+  **Mid-tier model** - Balanced capability and speed
+
   ```bash
   ai --sonnet task.md
   ai --aws --sonnet
   ```
-  
+
   **Equivalent:** `--mid`
-  
+
   **Default model:** `claude-sonnet-4-6-v1:0`
-  
+
   **Use for:**
   - Most coding tasks
   - General development
   - Documentation
   - Code review
-  
-  **Note:** This is the default tier when no model flag is specified.
 </ParamField>
 
 <ParamField path="--mid" type="flag">
@@ -153,11 +151,11 @@ Claude Pro/Max doesn't support tier selection - it always uses the latest availa
 | Sonnet (`--sonnet`, `--mid`) | `claude-sonnet-4-6-v1:0` |
 | Haiku (`--haiku`, `--low`) | `claude-haiku-4-5-20251001-v1:0` |
 
-**Default tier:** Sonnet (mid)
+**Default tier:** High (Opus)
 
 ```bash
-ai --aws                 # Uses Sonnet
-ai --aws --opus          # Uses Opus
+ai --aws                 # Uses Opus
+ai --aws --sonnet        # Uses Sonnet
 ai --aws --haiku         # Uses Haiku
 ```
 
@@ -178,11 +176,11 @@ Local providers don't have default models - you must specify with `--model` or c
 | Mid (`--sonnet`, `--mid`) | `gpt-5.3-codex` |
 | Low (`--haiku`, `--low`) | `gpt-5.4-mini` |
 
-**Default tier:** Mid (gpt-5.3-codex)
+**Default:** gpt-5.4 (Codex native default). Tier flags override: `--mid` selects gpt-5.3-codex.
 
 ```bash
-ai --codex                   # Uses gpt-5.3-codex
-ai --codex --opus            # Uses gpt-5.4
+ai --codex                   # Uses gpt-5.4 (native default)
+ai --codex --mid             # Uses gpt-5.3-codex
 ai --codex --haiku           # Uses gpt-5.4-mini
 ```
 
