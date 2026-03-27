@@ -208,23 +208,6 @@ When you exit an `ai` session:
 This non-destructive design means you can safely experiment with providers without breaking your Claude Code installation.
 </Info>
 
-## Passthrough Mode (Default)
-
-When no provider flag is given and no default is saved, `ai` operates in **passthrough mode** — a transparent wrapper that doesn't modify your Claude Code environment. Whatever auth method `claude` would use, `ai` uses too.
-
-This means:
-- If `ANTHROPIC_API_KEY` is in your environment → `ai` uses it (API billing)
-- If no API key → `ai` uses your subscription (via `/login`)
-- If `CLAUDE_CODE_USE_BEDROCK` is set → `ai` uses Bedrock
-
-To override passthrough and force a specific provider:
-
-| Goal | Command |
-|------|---------|
-| Force subscription | `ai --pro` or `ai --pro --set-default` |
-| Force API key | `ai --apikey` |
-| Force AWS Bedrock | `ai --aws` |
-
 ## Setting Default Providers
 
 If you frequently use a specific provider, save it as your default:
@@ -240,7 +223,7 @@ ai --resume
 # Clear saved default
 ai --clear-default
 
-# Back to system default (matches your claude config)
+# Back to auto-detection (Claude Pro if logged in)
 ai
 ```
 
@@ -253,7 +236,7 @@ Saved defaults are stored in `~/.ai-runner/default.conf`.
 | 1. CLI flags | Explicit flags | `ai --vertex task.md` |
 | 2. Shebang flags | Script header | `#!/usr/bin/env -S ai --aws` |
 | 3. Saved defaults | `--set-default` | Set with `ai --aws --set-default` |
-| 4. System default | No flags | Passthrough — matches native `claude` |
+| 4. Auto-detection | Current login | Claude Pro if logged in |
 
 ## Provider Examples
 

@@ -82,7 +82,7 @@ Let's create a simple executable markdown file that runs as an AI program.
     ./hello.md
     ```
     
-    The AI will execute your prompt and respond. This uses your system Claude configuration by default.
+    The AI will execute your prompt and respond. This uses your Claude subscription by default.
   </Step>
 </Steps>
 
@@ -91,11 +91,6 @@ Let's create a simple executable markdown file that runs as an AI program.
   ```bash
   ai hello.md
   ```
-</Tip>
-
-<Tip>
-  If `ANTHROPIC_API_KEY` is set in your shell environment, `ai` will use it — matching what `claude -p` does natively.
-  To force your subscription instead, use `ai --pro` or save it: `ai --pro --set-default`.
 </Tip>
 
 ## Example: Piping Data

@@ -65,9 +65,7 @@ This means you can safely run `ai --lmstudio` in one terminal while using `claud
 
 ### Automatic Provider Selection
 
-When no provider flag is given and no default is saved, AI Runner operates in **passthrough mode** — it doesn't load a provider or modify your environment. `claude` sees the same auth configuration as if run directly.
-
-When a provider IS needed (explicit flag, saved default, or `DEFAULT_PROVIDER` in secrets.sh), auto-detection uses:
+AI Runner first detects which runtime to use (Claude Code or Codex CLI), then selects the appropriate provider. If you don't specify a provider flag, Andi AIRun automatically detects and uses:
 
 1. **Claude Pro** (if logged in with `claude login`)
 2. **First configured provider** in secrets.sh

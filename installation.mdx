@@ -406,7 +406,7 @@ AIRun checks for updates once every 24 hours (non-blocking) and shows a notice w
 
 ### Session-Scoped Behavior
 
-`ai` with no flags matches your system `claude` configuration — same auth method, same model defaults. Provider flags (`--aws`, `--ollama`, etc.) only affect the current session:
+`ai` with no flags uses your regular Claude subscription, identical to running `claude` directly. Provider flags (`--aws`, `--ollama`, etc.) only affect the current session:
 
 - On exit, your original Claude settings are automatically restored
 - Plain `claude` in another terminal is completely unaffected

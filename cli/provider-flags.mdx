@@ -203,19 +203,20 @@ Provider flags let you switch between different AI providers and models on the f
   **Authentication:**
   - Claude subscription (log in with `claude`)
 
-  **Note:** Use this to force your Claude subscription when `ANTHROPIC_API_KEY` is in your environment.
+  **Note:** This is the default if you're logged in and don't specify another provider.
 </ParamField>
 
 ## Provider Precedence
 
-| Priority | Source | Behavior |
-|----------|--------|----------|
-| 1. CLI flags | `ai --vertex task.md` | Explicit provider |
-| 2. Shebang flags | `#!/usr/bin/env -S ai --aws` | Script-declared |
-| 3. Saved defaults | `ai --aws --set-default` | Persistent choice |
-| 4. System default | No flags | Passthrough — matches native `claude` |
+When no provider is specified, AI Runner auto-detects in this order:
 
-With no flags and no saved default, `ai` is a transparent wrapper. Your environment is passed to `claude` unmodified.
+1. **Saved default** from `--set-default`
+2. **Claude subscription** (if logged in with `claude`)
+3. **Ollama** (if running locally)
+4. **Anthropic API** (if `ANTHROPIC_API_KEY` is configured)
+5. **Cloud providers** (AWS, Vertex, Vercel, Azure — if configured)
+
+CLI flags always override saved defaults and auto-detection.
 
 ## Examples
 
