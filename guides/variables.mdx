@@ -69,6 +69,14 @@ Override variables from the command line using flag syntax:
 ./script.md --varname                      # boolean — sets to "true"
 ```
 
+Hyphens in flag names are normalized to underscores when matching variables. `--my-var` matches `my_var`, so you can use natural CLI conventions:
+
+```bash
+./script.md --brief-only                   # matches vars: brief_only
+./script.md --max-retries 5                # matches vars: max_retries
+./script.md --output-dir="/tmp/results"    # matches vars: output_dir
+```
+
 ### Examples
 
 Given this script:
@@ -216,7 +224,7 @@ vars:
 Perform {{operation}} on {{target_file}}.
 ```
 
-Users must provide `--target_file` and `--operation` or the placeholders remain literal.
+Users must provide `--target-file` and `--operation` (or `--target_file` — both work) or the placeholders remain literal.
 
 ### Multiple Scripts with Shared Variables
 
@@ -348,7 +356,7 @@ cat data.csv | ./analyze-data.md --metric users --period weekly
 - Provide sensible defaults for optional parameters
 - Use descriptive variable names (`source_dir` not `src`)
 - Document expected values in comments
-- Keep variable names lowercase with underscores
+- Keep variable names lowercase with underscores (users can override with hyphens: `--my-var` matches `my_var`)
 - Use boolean variables for feature flags (`verbose: false`) — users toggle with `--verbose`
 </Check>
 
@@ -379,7 +387,7 @@ cat data.csv | ./analyze-data.md --metric users --period weekly
 **Solutions:**
 1. Check variable is declared in front-matter
 2. Verify flag syntax: `--topic value`, `--topic="value"`, or `--topic` (boolean)
-3. Check for typos in variable name
+3. Check for typos in variable name — hyphens and underscores are interchangeable (`--my-var` and `--my_var` both match `my_var`)
 4. Ensure flag comes after script name: `./script.md --topic "AI"`
 
 <Note>
