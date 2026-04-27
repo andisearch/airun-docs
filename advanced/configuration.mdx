@@ -137,6 +137,34 @@ export CODEX_MODEL_LOW="gpt-5.4-mini"
 
 For custom providers (Azure OpenAI, OpenRouter), configure `~/.codex/config.toml` directly. See [Runtimes](/concepts/runtimes).
 
+## Pinning Opus to 4.6 (workaround for 4.7 regressions)
+
+Some users have hit issues with Opus 4.7 since the 2026-04-16 release — most notably an
+"invalid beta flag" error from AWS Bedrock that originates in Claude Code 2.1.111+
+(see [anthropics/claude-code#30926](https://github.com/anthropics/claude-code/issues/30926)).
+To pin Opus to 4.6 across every provider, add this to `~/.ai-runner/secrets.sh`:
+
+```bash
+# Pin --opus / --high to Opus 4.6 across all providers
+export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-6-v1"
+export CLAUDE_MODEL_OPUS_VERTEX="claude-opus-4-6"
+export CLAUDE_MODEL_OPUS_ANTHROPIC="claude-opus-4-6"
+export CLAUDE_MODEL_OPUS_AZURE="claude-opus-4-6"
+export CLAUDE_MODEL_OPUS_VERCEL="anthropic/claude-opus-4.6"
+
+# Also pin Claude Code's /model picker "Default" badge to 4.6.
+# Without this, the picker shows "Default ✓ Opus 4.7" even when ANTHROPIC_MODEL=4.6.
+export ANTHROPIC_DEFAULT_OPUS_MODEL="claude-opus-4-6"
+```
+
+The `CLAUDE_MODEL_OPUS_*` vars set the active session's model (`ANTHROPIC_MODEL`).
+`ANTHROPIC_DEFAULT_OPUS_MODEL` is a separate Claude Code variable that controls
+which model the in-session `/model` picker resolves the "Default" alias to —
+without it, picking "Default" inside an interactive session jumps you back to 4.7.
+
+Remove these lines (or revert to the defaults) once Anthropic ships a fix
+upstream and you're ready to move back to 4.7.
+
 ## Dual Model System
 
 Claude Code uses **two models** for optimal performance and cost:
