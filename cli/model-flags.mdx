@@ -11,7 +11,7 @@ The same tier flag selects each runtime's equivalent model:
 
 | Tier | Flag | Claude Code | Codex CLI |
 |------|------|-------------|-----------|
-| High | `--opus` / `--high` | claude-opus-4-7 | gpt-5.4 |
+| High | `--opus` / `--high` | claude-opus-4-8 | gpt-5.4 |
 | Mid | `--sonnet` / `--mid` | claude-sonnet-4-6 | gpt-5.3-codex |
 | Low | `--haiku` / `--low` | claude-haiku-4-5 | gpt-5.4-mini |
 
@@ -34,7 +34,7 @@ The same tier flag selects each runtime's equivalent model:
   
   **Equivalent:** `--high`
   
-  **Default model:** `claude-opus-4-7`
+  **Default model:** `claude-opus-4-8`
   
   **Use for:**
   - Complex architectural decisions
@@ -116,17 +116,17 @@ The same tier flag selects each runtime's equivalent model:
   **Specify exact model ID** - Use any model supported by your provider
   
   ```bash
-  ai --model claude-opus-4-7
-  ai --aws --model global.anthropic.claude-opus-4-7
+  ai --model claude-opus-4-8
+  ai --aws --model global.anthropic.claude-opus-4-8
   ai --ollama --model qwen3-coder
   ai --vercel --model openai/gpt-5.2-codex
   ai --codex --model gpt-5.4
   ```
   
   **Format depends on provider:**
-  - **AWS Bedrock:** `global.anthropic.claude-opus-4-7`
-  - **Vertex AI:** `claude-opus-4-7`
-  - **Anthropic API:** `claude-opus-4-7`
+  - **AWS Bedrock:** `global.anthropic.claude-opus-4-8`
+  - **Vertex AI:** `claude-opus-4-8`
+  - **Anthropic API:** `claude-opus-4-8`
   - **Ollama:** Model name from `ollama list`
   - **Vercel:** `provider/model-name` (e.g., `openai/gpt-4`)
   
@@ -147,7 +147,7 @@ Claude Pro/Max doesn't support tier selection - it always uses the latest availa
 
 | Tier | Default Model |
 |------|---------------|
-| Opus (`--opus`, `--high`) | `claude-opus-4-7` |
+| Opus (`--opus`, `--high`) | `claude-opus-4-8` |
 | Sonnet (`--sonnet`, `--mid`) | `claude-sonnet-4-6` |
 | Haiku (`--haiku`, `--low`) | `claude-haiku-4-5` |
 
@@ -195,7 +195,7 @@ export CODEX_MODEL_LOW="gpt-5.4-mini"
 
 ```bash
 ai --vercel --model openai/gpt-5.2-codex        # OpenAI
-ai --vercel --model anthropic/claude-opus-4.7   # Anthropic
+ai --vercel --model anthropic/claude-opus-4.8   # Anthropic
 ai --vercel --model google/gemini-exp-2506      # Google
 ```
 
@@ -221,7 +221,7 @@ export CLAUDE_MODEL_SONNET_AWS="global.anthropic.claude-sonnet-4-6"
 export CLAUDE_SMALL_FAST_MODEL_AWS="us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 # Override Vertex Opus model
-export CLAUDE_MODEL_OPUS_VERTEX="claude-opus-4-7"
+export CLAUDE_MODEL_OPUS_VERTEX="claude-opus-4-8"
 ```
 
 See `~/.ai-runner/models.sh` for all available override variables.
@@ -239,7 +239,7 @@ When you run:
 ai --aws --opus
 ```
 
-- **Primary:** Opus (`claude-opus-4-7`)
+- **Primary:** Opus (`claude-opus-4-8`)
 - **Background:** Haiku (`claude-haiku-4-5`)
 
 Both models show in `ai-status` output.
@@ -264,7 +264,7 @@ ai --aws --haiku quick-test.md
 
 ```bash
 # Specific AWS Bedrock model
-ai --aws --model us.anthropic.claude-opus-4-7
+ai --aws --model us.anthropic.claude-opus-4-8
 
 # Ollama local model
 ai --ollama --model qwen3-coder

@@ -11,7 +11,7 @@ AI Runner provides a **single interface** across AI coding tools. Pick your runt
 
 | Runtime | Flag | Default Model | Ecosystem | Install |
 |---------|------|---------------|-----------|---------|
-| [Claude Code](https://claude.ai/code) | `--cc` | claude-opus-4-7 | Anthropic | `curl -fsSL https://claude.ai/install.sh \| bash` |
+| [Claude Code](https://claude.ai/code) | `--cc` | claude-opus-4-8 | Anthropic | `curl -fsSL https://claude.ai/install.sh \| bash` |
 | [Codex CLI](https://developers.openai.com/codex/cli) | `--codex` | gpt-5.4 | OpenAI | `npm install -g @openai/codex` |
 
 Claude Code is the default when both are installed. If only Codex is installed, it becomes the default automatically.
@@ -60,12 +60,12 @@ The same tier flag selects each runtime's equivalent model:
 
 | Tier | Flag | Claude Code | Codex CLI |
 |------|------|-------------|-----------|
-| High | `--opus` / `--high` | claude-opus-4-7 | gpt-5.4 |
+| High | `--opus` / `--high` | claude-opus-4-8 | gpt-5.4 |
 | Mid | `--sonnet` / `--mid` | claude-sonnet-4-6 | gpt-5.3-codex |
 | Low | `--haiku` / `--low` | claude-haiku-4-5 | gpt-5.4-mini |
 
 ```bash
-ai --high task.md           # Claude Code: Opus 4.7
+ai --high task.md           # Claude Code: Opus 4.8
 ai --codex --high task.md   # Codex: gpt-5.4
 ```
 

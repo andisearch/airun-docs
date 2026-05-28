@@ -33,7 +33,7 @@ nano ~/.ai-runner/secrets.sh
 ```bash
 # Override AWS models
 export CLAUDE_MODEL_SONNET_AWS="global.anthropic.claude-sonnet-4-6"
-export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-7"
+export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-8"
 export CLAUDE_MODEL_HAIKU_AWS="us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 # Override small/fast model for background operations
@@ -42,14 +42,14 @@ export CLAUDE_SMALL_FAST_MODEL_AWS="us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 Pin a specific model revision (dated variants are published by Anthropic when available):
 ```bash
-export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-7"
+export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-8"
 ```
 
 ### Google Vertex AI
 
 ```bash
 export CLAUDE_MODEL_SONNET_VERTEX="claude-sonnet-4-6"
-export CLAUDE_MODEL_OPUS_VERTEX="claude-opus-4-7"
+export CLAUDE_MODEL_OPUS_VERTEX="claude-opus-4-8"
 export CLAUDE_MODEL_HAIKU_VERTEX="claude-haiku-4-5@20251001"
 
 export CLAUDE_SMALL_FAST_MODEL_VERTEX="claude-haiku-4-5@20251001"
@@ -59,7 +59,7 @@ export CLAUDE_SMALL_FAST_MODEL_VERTEX="claude-haiku-4-5@20251001"
 
 ```bash
 export CLAUDE_MODEL_SONNET_ANTHROPIC="claude-sonnet-4-6"
-export CLAUDE_MODEL_OPUS_ANTHROPIC="claude-opus-4-7"
+export CLAUDE_MODEL_OPUS_ANTHROPIC="claude-opus-4-8"
 export CLAUDE_MODEL_HAIKU_ANTHROPIC="claude-haiku-4-5"
 
 export CLAUDE_SMALL_FAST_MODEL_ANTHROPIC="claude-haiku-4-5"
@@ -71,7 +71,7 @@ Model names are deployment names from your Azure portal:
 
 ```bash
 export CLAUDE_MODEL_SONNET_AZURE="claude-sonnet-4-6"
-export CLAUDE_MODEL_OPUS_AZURE="claude-opus-4-7"
+export CLAUDE_MODEL_OPUS_AZURE="claude-opus-4-8"
 export CLAUDE_MODEL_HAIKU_AZURE="claude-haiku-4-5"
 
 export CLAUDE_SMALL_FAST_MODEL_AZURE="claude-haiku-4-5"
@@ -83,7 +83,7 @@ Use `provider/model` format (dots not dashes in version numbers):
 
 ```bash
 export CLAUDE_MODEL_SONNET_VERCEL="anthropic/claude-sonnet-4.6"
-export CLAUDE_MODEL_OPUS_VERCEL="anthropic/claude-opus-4.7"
+export CLAUDE_MODEL_OPUS_VERCEL="anthropic/claude-opus-4.8"
 export CLAUDE_MODEL_HAIKU_VERCEL="anthropic/claude-haiku-4.5"
 
 export CLAUDE_SMALL_FAST_MODEL_VERCEL="anthropic/claude-haiku-4.5"
@@ -157,7 +157,7 @@ export CLAUDE_MODEL_OPUS_AZURE="claude-opus-4-6"
 export CLAUDE_MODEL_OPUS_VERCEL="anthropic/claude-opus-4.6"
 
 # Also pin Claude Code's /model picker "Default" badge to 4.6.
-# Without this, the picker shows "Default ✓ Opus 4.7" even when ANTHROPIC_MODEL=4.6.
+# Without this, the picker shows "Default ✓ Opus 4.8" even when ANTHROPIC_MODEL=4.6.
 export ANTHROPIC_DEFAULT_OPUS_MODEL="claude-opus-4-6"
 ```
 
@@ -218,7 +218,7 @@ Used for:
 
 When you run `ai --aws --opus`, the scripts set:
 ```bash
-export ANTHROPIC_MODEL="global.anthropic.claude-opus-4-7"             # Primary
+export ANTHROPIC_MODEL="global.anthropic.claude-opus-4-8"             # Primary
 export ANTHROPIC_SMALL_FAST_MODEL="us.anthropic.claude-haiku-4-5-..." # Background
 ```
 
@@ -287,7 +287,7 @@ Shipped with AI Runner, defines default model IDs for each provider:
 ```bash
 # AWS Bedrock defaults
 export CLAUDE_MODEL_SONNET_AWS="global.anthropic.claude-sonnet-4-6"
-export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-7"
+export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-8"
 export CLAUDE_MODEL_HAIKU_AWS="us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 # Small/fast model defaults
@@ -309,7 +309,7 @@ Copied from `config/models.sh` during `setup.sh`. Updated when system defaults c
 
 **When to update:**
 - After `git pull` if model defaults changed
-- To get new model versions (e.g., Opus 4.7 → a newer Opus release)
+- To get new model versions (e.g., Opus 4.8 → a newer Opus release)
 - If your models aren't working (outdated IDs)
 
 **When to keep:**
@@ -329,10 +329,10 @@ config/models.sh             ← Lowest (system defaults, read-only)
 Example:
 ```bash
 # config/models.sh (system default)
-export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-7"
+export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-8"
 
 # User runs: ai --aws --opus
-# Uses: global.anthropic.claude-opus-4-7
+# Uses: global.anthropic.claude-opus-4-8
 
 # User pins an older version in secrets.sh:
 export CLAUDE_MODEL_OPUS_AWS="global.anthropic.claude-opus-4-6-v1"
